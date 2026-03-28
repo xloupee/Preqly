@@ -74,13 +74,17 @@ function mapAuthError(message: string, mode: AuthMode) {
 
 export function AuthPanel({
   authStatus,
-  userEmail
+  userEmail,
+  initialMode = "signup",
+  redirectTo = "/workspace"
 }: {
   authStatus: string | null;
   userEmail: string | null;
+  initialMode?: AuthMode;
+  redirectTo?: string;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("signup");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
@@ -125,7 +129,7 @@ export function AuthPanel({
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/auth`
         }
       });
 
@@ -142,6 +146,12 @@ export function AuthPanel({
           : "If this email can be registered, check your inbox for a confirmation link. If you already have an account, log in instead."
       );
       setPassword("");
+
+      if (data.session) {
+        router.push(redirectTo);
+        return;
+      }
+
       router.refresh();
       return;
     }
@@ -160,7 +170,7 @@ export function AuthPanel({
     setStatus("success");
     setMessage("Signed in.");
     setPassword("");
-    router.refresh();
+    router.push(redirectTo);
   };
 
   const handleSignOut = async () => {

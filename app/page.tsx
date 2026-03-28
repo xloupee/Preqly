@@ -1,34 +1,10 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 
-import { AuthPanel } from "@/components/auth/auth-panel";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
 
 const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
 
-type HomeProps = {
-  searchParams?: Promise<{
-    auth?: string;
-  }>;
-};
-
-export default async function Home({ searchParams }: HomeProps) {
-  const params = await searchParams;
-  const authStatus = params?.auth ?? null;
-  let userEmail: string | null = null;
-
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ) {
-    const supabase = await createClient();
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
-
-    userEmail = user?.email ?? null;
-  }
-
+export default function Home() {
   return (
     <main className="landing-page">
       <div className="ambient ambient-left" />
@@ -49,7 +25,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </p>
           <div className="hero-actions">
             <Button asChild size="lg">
-              <a href="/workspace">
+              <a href="/auth">
                 Get Started
                 <ArrowRight aria-hidden="true" />
               </a>
@@ -82,18 +58,6 @@ export default async function Home({ searchParams }: HomeProps) {
             </span>
           ))}
         </div>
-      </section>
-
-      <section className="waitlist-section" id="waitlist">
-        <div className="waitlist-copy">
-          <p className="section-kicker">Early access</p>
-          <h2>Create your Preqly account and keep the workspace within reach.</h2>
-          <p>
-            Sign up or log in from the landing page, then move into the workspace
-            when you want to explore the course map and syllabus upload flow.
-          </p>
-        </div>
-        <AuthPanel authStatus={authStatus} userEmail={userEmail} />
       </section>
     </main>
   );

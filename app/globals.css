@@ -296,7 +296,8 @@ input {
     0 30px 60px -42px var(--shadow);
 }
 
-.landing-page .waitlist-label {
+.landing-page .waitlist-label,
+.auth-route .waitlist-label {
   display: block;
   margin-bottom: 1rem;
   color: var(--foreground-soft);
@@ -304,13 +305,15 @@ input {
   line-height: 1.6;
 }
 
-.landing-page .waitlist-controls {
+.landing-page .waitlist-controls,
+.auth-route .waitlist-controls {
   display: grid;
   gap: 0.85rem;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
-.landing-page .waitlist-message {
+.landing-page .waitlist-message,
+.auth-route .waitlist-message {
   min-height: 1.5rem;
   margin: 0.95rem 0 0;
   color: var(--foreground-muted);
@@ -318,7 +321,8 @@ input {
   line-height: 1.55;
 }
 
-.landing-page .auth-shell {
+.landing-page .auth-shell,
+.auth-route .auth-shell {
   border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
   border-radius: 2rem;
   background:
@@ -330,7 +334,8 @@ input {
     0 30px 60px -42px var(--shadow);
 }
 
-.landing-page .auth-toggle {
+.landing-page .auth-toggle,
+.auth-route .auth-toggle {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.35rem;
@@ -340,7 +345,8 @@ input {
   padding: 0.3rem;
 }
 
-.landing-page .auth-toggle-button {
+.landing-page .auth-toggle-button,
+.auth-route .auth-toggle-button {
   border: 0;
   border-radius: 999px;
   background: transparent;
@@ -353,17 +359,20 @@ input {
     transform 180ms ease;
 }
 
-.landing-page .auth-toggle-button.is-active {
+.landing-page .auth-toggle-button.is-active,
+.auth-route .auth-toggle-button.is-active {
   background: var(--accent-strong);
   color: var(--accent-foreground);
 }
 
-.landing-page .auth-fields {
+.landing-page .auth-fields,
+.auth-route .auth-fields {
   display: grid;
   gap: 0.85rem;
 }
 
-.landing-page .auth-badge {
+.landing-page .auth-badge,
+.auth-route .auth-badge {
   display: inline-flex;
   align-items: center;
   width: fit-content;
@@ -378,20 +387,113 @@ input {
   text-transform: uppercase;
 }
 
-.landing-page .auth-title {
+.landing-page .auth-title,
+.auth-route .auth-title {
   margin: 0;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1.05;
 }
 
-.landing-page .auth-message {
+.landing-page .auth-message,
+.auth-route .auth-message {
   margin: 0.9rem 0 0;
   color: var(--foreground-soft);
   line-height: 1.7;
 }
 
-.landing-page .auth-signout {
+.landing-page .auth-signout,
+.auth-route .auth-signout {
   margin-top: 1.2rem;
+}
+
+.auth-route {
+  position: relative;
+  overflow: clip;
+  min-height: 100vh;
+  padding: clamp(1rem, 2vw, 1.4rem);
+}
+
+.auth-route-orb {
+  position: absolute;
+  width: 28rem;
+  height: 28rem;
+  border-radius: 999px;
+  background: radial-gradient(circle, color-mix(in oklab, white 52%, var(--accent) 48%), transparent 68%);
+  filter: blur(34px);
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.auth-route-orb-left {
+  top: -8%;
+  left: -8%;
+}
+
+.auth-route-orb-right {
+  right: -10%;
+  bottom: -12%;
+}
+
+.auth-route-shell {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-items: center;
+  gap: clamp(1.4rem, 4vw, 3rem);
+  width: min(100%, 78rem);
+  min-height: calc(100vh - clamp(2rem, 4vw, 2.8rem));
+  margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) minmax(20rem, 32rem);
+}
+
+.auth-route-copy {
+  max-width: 34rem;
+}
+
+.auth-route-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 9%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, white 65%, transparent);
+  padding: 0.6rem 0.95rem;
+  color: var(--foreground-soft);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.auth-route-copy h1 {
+  margin: 0;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: clamp(3rem, 6vw, 5.5rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.9;
+}
+
+.auth-route-copy p:last-of-type {
+  max-width: 30rem;
+  margin: 1.15rem 0 0;
+  color: var(--foreground-soft);
+  font-size: clamp(1rem, 1.6vw, 1.08rem);
+  line-height: 1.72;
+}
+
+.auth-route-copy .button,
+.auth-route-copy > .inline-flex {
+  margin-top: 1.5rem;
+}
+
+.auth-route-panel {
+  position: relative;
 }
 
 .workspace-route {
@@ -631,26 +733,39 @@ input {
   stroke-linecap: round;
 }
 
-.workspace-route .course-edge path {
+.workspace-route .course-edge .course-edge-path-base {
+  fill: none;
   opacity: 1;
   filter: drop-shadow(0 3px 10px rgba(122, 103, 71, 0.14));
+  transition: opacity 180ms ease, filter 180ms ease;
 }
 
-.workspace-route .course-edge.is-visible path {
+.workspace-route .course-edge.is-visible .course-edge-path-base {
   filter: drop-shadow(0 4px 10px rgba(122, 103, 71, 0.18));
 }
 
-.workspace-route .course-edge.is-active path {
+.workspace-route .course-edge.is-active .course-edge-path-base {
   filter: drop-shadow(0 5px 14px rgba(122, 103, 71, 0.28));
 }
 
-.workspace-route .course-edge.is-upstream path,
-.workspace-route .course-edge.is-downstream path {
+.workspace-route .course-edge.is-upstream .course-edge-path-base,
+.workspace-route .course-edge.is-downstream .course-edge-path-base {
   filter: drop-shadow(0 8px 18px rgba(122, 103, 71, 0.34));
 }
 
 .workspace-route .react-flow__edge-marker {
   fill: rgba(122, 103, 71, 0.72);
+}
+
+.workspace-route .course-edge.is-active .react-flow__edge-marker,
+.workspace-route .course-edge.is-upstream .react-flow__edge-marker,
+.workspace-route .course-edge.is-downstream .react-flow__edge-marker {
+  fill: rgba(149, 124, 76, 0.92);
+}
+
+.workspace-route .course-edge-path-base.is-flowing {
+  stroke-dasharray: 8 10;
+  animation: edge-flow 1.8s linear infinite;
 }
 
 .workspace-route .react-flow__edge-textbg {
@@ -1108,6 +1223,19 @@ input {
   .workspace-route .workspace-canvas::after {
     display: none;
   }
+
+  .workspace-route .course-edge-path-base.is-flowing {
+    animation: none;
+  }
+}
+
+@keyframes edge-flow {
+  from {
+    stroke-dashoffset: 18;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
 }
 
 @keyframes rise {
@@ -1192,6 +1320,13 @@ input {
     flex-direction: column;
     align-items: flex-start;
   }
+
+  .auth-route-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
 }
 
 @media (max-width: 720px) {
@@ -1264,6 +1399,14 @@ input {
     left: 0.8rem;
     top: 1rem;
     bottom: auto;
+  }
+
+  .auth-route-copy h1 {
+    font-size: clamp(2.6rem, 12vw, 4.2rem);
+  }
+
+  .auth-route .waitlist-controls {
+    grid-template-columns: 1fr;
   }
 }
 

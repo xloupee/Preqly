@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
+  getSmoothStepPath,
   Handle,
   MarkerType,
   Position,
@@ -19,6 +20,7 @@ import ReactFlow, {
   useNodesState,
   useReactFlow,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
 } from "reactflow";
@@ -35,6 +37,11 @@ type GraphNodeData = CourseMapNode & {
   dimmed: boolean;
   matched: boolean;
   relation: "selected" | "prerequisite" | "unlocks" | "connected" | "default";
+};
+
+type GraphEdgeData = {
+  animated: boolean;
+  className: string;
 };
 
 type HandleId =
@@ -101,8 +108,48 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
   );
 }
 
+function AnimatedCourseEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+  data,
+}: EdgeProps<GraphEdgeData>) {
+  const [edgePath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 18,
+  });
+
+  return (
+    <g className={data?.className}>
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        className={data?.animated ? "course-edge-path-base is-flowing" : "course-edge-path-base"}
+        markerEnd={markerEnd}
+        style={style}
+      />
+    </g>
+  );
+}
+
 const nodeTypes = {
   course: CourseNode,
+};
+
+const edgeTypes = {
+  course: AnimatedCourseEdge,
 };
 
 function collectAdjacentNodeIds(selectedId: string | null) {
@@ -248,7 +295,7 @@ function MapCanvas() {
     [nodes],
   );
 
-  const edges = useMemo<Edge[]>(() => {
+  const edges = useMemo<Edge<GraphEdgeData>[]>(() => {
     return courseMapEdges.map((edge) => {
       const sourceNode = nodeLookup[edge.source];
       const targetNode = nodeLookup[edge.target];
@@ -270,10 +317,22 @@ function MapCanvas() {
       return {
         ...edge,
         animated: false,
-        type: "smoothstep",
+        type: "course",
         sourceHandle,
         targetHandle,
         markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+        data: {
+          animated: directlyConnected,
+          className: [
+            "course-edge",
+            "is-visible",
+            active || emphasizedBySearch ? "is-active" : "",
+            directlyUpstream ? "is-upstream" : "",
+            directlyDownstream ? "is-downstream" : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+        },
         style: {
           stroke:
             directlyConnected || emphasizedBySearch
@@ -284,15 +343,6 @@ function MapCanvas() {
           strokeWidth: directlyConnected ? 3.2 : active || emphasizedBySearch ? 2.4 : 2,
           strokeDasharray: directlyConnected ? undefined : active || emphasizedBySearch ? "5 9" : "4 8",
         },
-        className: [
-          "course-edge",
-          "is-visible",
-          active || emphasizedBySearch ? "is-active" : "",
-          directlyUpstream ? "is-upstream" : "",
-          directlyDownstream ? "is-downstream" : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
         labelStyle: {
           fill: "rgba(122, 103, 71, 0.65)",
           fontSize: 11,
@@ -369,6 +419,7 @@ function MapCanvas() {
             nodes={nodes}
             edges={edges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             nodesConnectable={false}
             proOptions={{ hideAttribution: true }}
             connectionLineType={ConnectionLineType.SmoothStep}
