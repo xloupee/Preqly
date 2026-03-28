@@ -435,9 +435,6 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
                               disabled={testSubmitted}
                               aria-pressed={isSelected}
                             >
-                              <span className="practice-test-option-letter">
-                                {String.fromCharCode(65 + choiceIndex)}
-                              </span>
                               <span>{choice}</span>
                             </button>
                           );
