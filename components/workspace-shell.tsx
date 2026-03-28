@@ -24,6 +24,7 @@ type WorkspaceShellProps = {
   classesEnabled?: boolean;
   classesMessage?: string | null;
   userEmail?: string | null;
+  sidebarBottom?: ReactNode;
 };
 
 export function WorkspaceShell({
@@ -33,6 +34,7 @@ export function WorkspaceShell({
   classesEnabled = true,
   classesMessage = null,
   userEmail = null,
+  sidebarBottom,
 }: WorkspaceShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
@@ -103,6 +105,8 @@ export function WorkspaceShell({
             </div>
           </section>
         )}
+
+        {sidebarBottom}
 
         <div className="sidebar-footer">
           <button className="sidebar-link" type="button" title={isCollapsed ? "Settings" : undefined}>
