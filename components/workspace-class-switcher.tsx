@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef, useState } from "react";
-import { FolderPlus, LoaderCircle, Plus } from "lucide-react";
+import { FolderPlus, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,7 @@ type WorkspaceClassSwitcherProps = {
 };
 
 type FormStatus = "idle" | "submitting" | "error";
+const DEMO_CLASS_ID = "demo-cs50";
 
 function formatUploadTime(value: string) {
   const timestamp = new Date(value);
@@ -63,6 +64,7 @@ export function WorkspaceClassSwitcher({
   );
   const [formStatus, setFormStatus] = useState<FormStatus>("idle");
   const [isFormOpen, setIsFormOpen] = useState(classes.length === 0);
+  const [deletingClassId, setDeletingClassId] = useState<string | null>(null);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -121,6 +123,44 @@ export function WorkspaceClassSwitcher({
     router.refresh();
   }
 
+  async function handleRemoveClass(classId: string) {
+    if (!classesEnabled) {
+      setFormStatus("error");
+      setMessage(classesMessage ?? "Run the latest Supabase migration to enable class storage.");
+      return;
+    }
+
+    setDeletingClassId(classId);
+    setMessage("Removing class...");
+
+    const response = await fetch("/api/classes", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ classId }),
+    });
+
+    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+    if (!response.ok) {
+      setDeletingClassId(null);
+      setFormStatus("error");
+      setMessage(payload?.error ?? "We could not remove this class.");
+      return;
+    }
+
+    const remainingClasses = classes.filter((course) => course.id !== classId);
+    const nextActiveClass = remainingClasses[0]?.id ?? DEMO_CLASS_ID;
+
+    setDeletingClassId(null);
+    setFormStatus("idle");
+    setMessage(remainingClasses.length > 0 ? "Class removed." : "Class removed. Showing the demo map.");
+
+    router.push(`/workspace?class=${nextActiveClass}`);
+    router.refresh();
+  }
+
   return (
     <section className="sidebar-class-group" aria-label="Your classes">
       <div className="sidebar-class-header">
@@ -145,19 +185,35 @@ export function WorkspaceClassSwitcher({
             const isActive = course.id === activeClassId;
 
             return (
-              <Link
+              <div
                 key={course.id}
-                href={`/workspace?class=${course.id}`}
                 className={`sidebar-class-item${isActive ? " is-active" : ""}`}
               >
-                <div className="sidebar-class-copy">
-                  <span className="sidebar-class-title">{course.title}</span>
-                  <span className="sidebar-class-file">{course.syllabusFilename}</span>
-                </div>
-                <span className="sidebar-class-status">
-                  {formatUploadTime(course.createdAt)}
-                </span>
-              </Link>
+                <Link href={`/workspace?class=${course.id}`} className="sidebar-class-link">
+                  <div className="sidebar-class-copy">
+                    <span className="sidebar-class-title">{course.title}</span>
+                    <span className="sidebar-class-file">{course.syllabusFilename}</span>
+                  </div>
+                  <span className="sidebar-class-status">
+                    {formatUploadTime(course.createdAt)}
+                  </span>
+                </Link>
+                {course.id !== DEMO_CLASS_ID ? (
+                  <button
+                    type="button"
+                    className="sidebar-class-delete"
+                    aria-label={`Remove ${course.title}`}
+                    disabled={deletingClassId === course.id}
+                    onClick={() => handleRemoveClass(course.id)}
+                  >
+                    {deletingClassId === course.id ? (
+                      <LoaderCircle aria-hidden="true" className="animate-spin" />
+                    ) : (
+                      <Trash2 aria-hidden="true" />
+                    )}
+                  </button>
+                ) : null}
+              </div>
             );
           })
         ) : (

@@ -57,7 +57,6 @@ export function WorkspaceShell({
             <BrandLogo size={28} className="sidebar-logo-image" />
           </div>
           <div className="sidebar-brand-copy">
-            <p className="sidebar-overline">Preqly</p>
             <h1>Workspace</h1>
           </div>
           <button
