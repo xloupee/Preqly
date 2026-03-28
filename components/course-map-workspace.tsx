@@ -1,18 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowUpRight,
-  BookOpenText,
-  ChevronLeft,
   Database,
-  FolderKanban,
   Minus,
   Plus,
   Search,
-  Settings,
-  Sparkles,
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
@@ -29,6 +25,8 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
+import { Button } from "@/components/ui/button";
+import { WorkspaceShell } from "@/components/workspace-shell";
 import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
 
 type GraphNodeData = CourseMapNode & {
@@ -38,14 +36,6 @@ type GraphNodeData = CourseMapNode & {
   matched: boolean;
   relation: "selected" | "prerequisite" | "unlocks" | "connected" | "default";
 };
-
-const sidebarItems = [
-  { label: "Courses", icon: BookOpenText, active: true },
-  { label: "Dashboard", icon: FolderKanban, active: false },
-  { label: "Settings", icon: Settings, active: false },
-];
-
-const courseSections = ["Summary", "Versions", "Notes"];
 
 type HandleId =
   | "top-source"
@@ -334,54 +324,7 @@ function MapCanvas() {
   };
 
   return (
-    <div className="workspace-shell">
-      <aside className="workspace-sidebar">
-        <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <Sparkles aria-hidden="true" />
-          </div>
-          <div>
-            <p className="sidebar-overline">Preqly</p>
-            <h1>Prereq Studio</h1>
-          </div>
-          <button className="sidebar-collapse" type="button" aria-label="Collapse navigation">
-            <ChevronLeft aria-hidden="true" />
-          </button>
-        </div>
-
-        <nav className="sidebar-nav" aria-label="Primary">
-          {sidebarItems.map((item) => (
-            <button
-              key={item.label}
-              className={item.active ? "sidebar-link is-active" : "sidebar-link"}
-              type="button"
-            >
-              <item.icon aria-hidden="true" />
-              <span>{item.label}</span>
-            </button>
-          ))}
-        </nav>
-
-        <section className="sidebar-course-card" aria-label="Selected course">
-          <p className="sidebar-course-label">Current course</p>
-          <h2>CS50 Intro</h2>
-          <div className="sidebar-course-sections">
-            {courseSections.map((section) => (
-              <button key={section} type="button" className="sidebar-section-link">
-                {section}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <div className="sidebar-footer">
-          <button className="sidebar-link" type="button">
-            <Settings aria-hidden="true" />
-            <span>Settings</span>
-          </button>
-        </div>
-      </aside>
-
+    <WorkspaceShell>
       <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
         <div
           ref={canvasRef}
@@ -460,6 +403,11 @@ function MapCanvas() {
                 </div>
               ))}
             </div>
+            <div className="node-detail-actions">
+              <Button asChild size="sm">
+                <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
+              </Button>
+            </div>
           </aside>
 
           <div className="canvas-caption">
@@ -468,7 +416,7 @@ function MapCanvas() {
           </div>
         </div>
       </section>
-    </div>
+    </WorkspaceShell>
   );
 }
 
