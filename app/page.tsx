@@ -1,13 +1,14 @@
-import { ArrowDownRight, Sparkles } from "lucide-react";
+import { ArrowDownRight, Compass, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { SyllabusUpload } from "@/components/syllabus-upload";
 import { WaitlistForm } from "@/components/waitlist-form";
 
 const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
 
 export default function Home() {
   return (
-    <main className="page-shell">
+    <main className="landing-page">
       <div className="ambient ambient-left" />
       <div className="ambient ambient-right" />
       <div className="grain" />
@@ -26,11 +27,18 @@ export default function Home() {
           </p>
           <div className="hero-actions">
             <Button asChild size="lg">
+              <a href="/workspace">
+                Open Workspace
+                <Compass aria-hidden="true" />
+              </a>
+            </Button>
+            <Button asChild size="lg" variant="secondary">
               <a href="#waitlist">
-                Get Started
+                Join Beta
                 <ArrowDownRight aria-hidden="true" />
               </a>
             </Button>
+            <SyllabusUpload />
           </div>
         </div>
 
@@ -67,8 +75,8 @@ export default function Home() {
           <h2>Bring structure to lectures before students fall behind.</h2>
           <p>
             Start with a focused beta waitlist while the product surface is still
-            lean. This first version keeps signup local and product messaging
-            clear.
+            lean. Use the landing page for onboarding, then move directly into the
+            interactive workspace when you want to explore the course map.
           </p>
         </div>
         <WaitlistForm />
