@@ -2157,6 +2157,15 @@ label[for],
   font-size: 0.92rem;
 }
 
+.workspace-route .node-outcome-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-top: 0.42rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 70%, transparent);
+  flex-shrink: 0;
+}
+
 .workspace-route .node-outcome-item svg {
   margin-top: 0.1rem;
   color: var(--accent);
