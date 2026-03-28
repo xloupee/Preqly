@@ -2,8 +2,6 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
-
 export default function Home() {
   return (
     <main className="landing-page">
@@ -49,16 +47,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="compatibility">
-        <p className="compatibility-label">Works with</p>
-        <div className="compatibility-strip">
-          {partners.map((partner) => (
-            <span className="partner-pill" key={partner}>
-              {partner}
-            </span>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }

@@ -1,8 +1,6 @@
-import { ArrowRight, ShieldCheck } from "lucide-react";
 import { redirect } from "next/navigation";
 
 import { AuthPanel } from "@/components/auth/auth-panel";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
 
 type AuthPageProps = {
@@ -38,25 +36,6 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
       <div className="auth-route-orb auth-route-orb-right" />
 
       <section className="auth-route-shell">
-        <div className="auth-route-copy">
-          <p className="auth-route-kicker">
-            <ShieldCheck aria-hidden="true" />
-            Account access
-          </p>
-          <h1>Start with your Preqly account, then move into the workspace.</h1>
-          <p>
-            Sign up to create a new account or log in if you already have one.
-            Once your session is active, you will continue straight into the
-            course workspace.
-          </p>
-          <Button asChild size="lg" variant="secondary">
-            <a href="/workspace">
-              Browse workspace
-              <ArrowRight aria-hidden="true" />
-            </a>
-          </Button>
-        </div>
-
         <div className="auth-route-panel">
           <AuthPanel
             authStatus={authStatus}

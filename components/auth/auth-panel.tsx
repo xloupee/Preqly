@@ -12,8 +12,7 @@ type AuthMode = "signin" | "signup";
 type FormStatus = "idle" | "invalid" | "submitting" | "success" | "error";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordPattern =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&^#()_\-+=]{8,72}$/;
+const passwordPattern = /^.{6,72}$/;
 const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -114,9 +113,7 @@ export function AuthPanel({
 
     if (!validatePassword(password)) {
       setStatus("invalid");
-      setMessage(
-        "Password must be 8+ characters and include an uppercase letter, a lowercase letter, and a number."
-      );
+      setMessage("Password must be at least 6 characters.");
       return;
     }
 
@@ -249,7 +246,7 @@ export function AuthPanel({
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
           placeholder={
             mode === "signup"
-              ? "8+ chars, upper/lowercase, number"
+              ? "At least 6 characters"
               : "Your password"
           }
           value={password}

@@ -437,63 +437,17 @@ input {
 .auth-route-shell {
   position: relative;
   z-index: 1;
-  display: grid;
+  display: flex;
   align-items: center;
-  gap: clamp(1.4rem, 4vw, 3rem);
-  width: min(100%, 78rem);
+  justify-content: center;
+  width: min(100%, 34rem);
   min-height: calc(100vh - clamp(2rem, 4vw, 2.8rem));
   margin: 0 auto;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 32rem);
-}
-
-.auth-route-copy {
-  max-width: 34rem;
-}
-
-.auth-route-kicker {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  margin: 0 0 1rem;
-  border: 1px solid color-mix(in oklab, var(--foreground) 9%, transparent);
-  border-radius: 999px;
-  background: color-mix(in oklab, white 65%, transparent);
-  padding: 0.6rem 0.95rem;
-  color: var(--foreground-soft);
-  font-size: 0.82rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.auth-route-copy h1 {
-  margin: 0;
-  font-family:
-    "Iowan Old Style",
-    "Palatino Linotype",
-    "Book Antiqua",
-    Georgia,
-    serif;
-  font-size: clamp(3rem, 6vw, 5.5rem);
-  font-weight: 500;
-  letter-spacing: -0.055em;
-  line-height: 0.9;
-}
-
-.auth-route-copy p:last-of-type {
-  max-width: 30rem;
-  margin: 1.15rem 0 0;
-  color: var(--foreground-soft);
-  font-size: clamp(1rem, 1.6vw, 1.08rem);
-  line-height: 1.72;
-}
-
-.auth-route-copy .button,
-.auth-route-copy > .inline-flex {
-  margin-top: 1.5rem;
 }
 
 .auth-route-panel {
   position: relative;
+  width: 100%;
 }
 
 .workspace-route {
@@ -651,7 +605,7 @@ input {
 }
 
 .workspace-route .sidebar-section-link {
-  padding-inline: 0;
+  padding: 0.9rem 1rem;
 }
 
 .workspace-route .sidebar-section-link:hover {
