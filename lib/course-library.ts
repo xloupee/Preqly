@@ -1,20 +1,12 @@
 import "server-only";
 
-import { promises as fs } from "fs";
-import path from "path";
-
 import {
   courseMapEdges,
   courseMapLessons,
   courseMapNodes,
 } from "@/lib/course-map-data";
 import type { CourseRecord } from "@/lib/course-types";
-
-const generatedCoursesPath = path.join(
-  process.cwd(),
-  "data",
-  "course-library.generated.json",
-);
+import { createClient } from "@/lib/supabase/server";
 
 const seedCourse: CourseRecord = {
   slug: "cs50-intro",
@@ -28,32 +20,84 @@ const seedCourse: CourseRecord = {
   lessons: courseMapLessons,
 };
 
-async function readGeneratedCourses(): Promise<CourseRecord[]> {
-  try {
-    const raw = await fs.readFile(generatedCoursesPath, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    const code = (error as NodeJS.ErrnoException).code;
+type CourseRow = {
+  slug: string;
+  title: string;
+  summary: string;
+  source: string;
+  syllabus_filename: string | null;
+  nodes: CourseRecord["nodes"];
+  edges: CourseRecord["edges"];
+  lessons: CourseRecord["lessons"];
+  created_at: string;
+};
 
-    if (code === "ENOENT") {
+function mapRow(row: CourseRow): CourseRecord {
+  return {
+    slug: row.slug,
+    title: row.title,
+    summary: row.summary,
+    source: row.source as CourseRecord["source"],
+    syllabusFileName: row.syllabus_filename ?? undefined,
+    nodes: row.nodes,
+    edges: row.edges,
+    lessons: row.lessons,
+    createdAt: row.created_at,
+  };
+}
+
+async function readCoursesFromSupabase(): Promise<CourseRecord[]> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select(
+        "slug, title, summary, source, syllabus_filename, nodes, edges, lessons, created_at",
+      )
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Failed to read courses from Supabase:", error.message);
       return [];
     }
 
-    throw error;
+    return (data as CourseRow[]).map(mapRow);
+  } catch (error) {
+    console.error("Supabase courses query failed:", error);
+    return [];
   }
 }
 
 export async function getAllCourses() {
-  const generatedCourses = await readGeneratedCourses();
-  const dedupedGeneratedCourses = generatedCourses.filter(
+  const dbCourses = await readCoursesFromSupabase();
+  const dedupedCourses = dbCourses.filter(
     (course) => course.slug !== seedCourse.slug,
   );
 
-  return [seedCourse, ...dedupedGeneratedCourses];
+  return [seedCourse, ...dedupedCourses];
 }
 
 export async function getCourseBySlug(slug: string) {
-  const courses = await getAllCourses();
-  return courses.find((course) => course.slug === slug);
+  if (slug === seedCourse.slug) {
+    return seedCourse;
+  }
+
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("courses")
+      .select(
+        "slug, title, summary, source, syllabus_filename, nodes, edges, lessons, created_at",
+      )
+      .eq("slug", slug)
+      .maybeSingle();
+
+    if (error || !data) {
+      return undefined;
+    }
+
+    return mapRow(data as CourseRow);
+  } catch {
+    return undefined;
+  }
 }

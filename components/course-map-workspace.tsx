@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
-  ArrowUpRight,
   Check,
   Database,
   LoaderCircle,
@@ -17,7 +16,6 @@ import ReactFlow, {
   ConnectionLineType,
   getSmoothStepPath,
   Handle,
-  MarkerType,
   Position,
   ReactFlowProvider,
   useNodesState,
@@ -522,7 +520,6 @@ function MapCanvas({
         type: "course",
         sourceHandle,
         targetHandle,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
         data: {
           className: [
             "course-edge",
@@ -779,7 +776,7 @@ function MapCanvas({
             <div className="node-outcomes">
               {selectedNode.outcomes.map((outcome) => (
                 <div key={outcome} className="node-outcome-item">
-                  <ArrowUpRight aria-hidden="true" />
+                  <span className="node-outcome-dot" aria-hidden="true" />
                   <span>{outcome}</span>
                 </div>
               ))}

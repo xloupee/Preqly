@@ -11,7 +11,7 @@ from fastapi import HTTPException
 from pypdf import PdfReader
 
 from app.models import CourseRecord
-from app.services.course_store import slugify, upsert_generated_course
+from app.services.course_store import slugify
 
 GEMINI_API_URL_TEMPLATE = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -397,4 +397,4 @@ async def generate_course_from_syllabus(
         }
     )
 
-    return upsert_generated_course(course)
+    return course

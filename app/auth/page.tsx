@@ -32,8 +32,9 @@ export default async function AuthPage({ searchParams }: AuthPageProps) {
 
   return (
     <main className="auth-route">
-      <div className="auth-route-orb auth-route-orb-left" />
-      <div className="auth-route-orb auth-route-orb-right" />
+      <div className="ambient ambient-left" />
+      <div className="ambient ambient-right" />
+      <div className="grain" />
 
       <section className="auth-route-shell">
         <div className="auth-route-panel">

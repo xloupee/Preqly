@@ -32,19 +32,37 @@ export function CourseLibraryUpload() {
       setMessage("Reading the syllabus and generating a course map...");
 
       try {
-        const response = await fetch(`${backendUrl}/api/course-map/upload`, {
+        const generateResponse = await fetch(
+          `${backendUrl}/api/course-map/upload`,
+          { method: "POST", body: formData },
+        );
+
+        const generatePayload = await generateResponse.json();
+
+        if (!generateResponse.ok || !generatePayload.course) {
+          throw new Error(
+            generatePayload.detail ?? "Could not generate the course.",
+          );
+        }
+
+        setMessage("Saving course...");
+
+        const saveResponse = await fetch("/api/courses", {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(generatePayload.course),
         });
 
-        const payload = await response.json();
+        const savePayload = await saveResponse.json().catch(() => null);
 
-        if (!response.ok) {
-          throw new Error(payload.detail ?? "Upload failed.");
+        if (!saveResponse.ok || !savePayload?.course?.slug) {
+          throw new Error(
+            savePayload?.error ?? "Could not save the course.",
+          );
         }
 
         setMessage("Course generated. Opening the map...");
-        router.push(`/workspace/${payload.course.slug}`);
+        router.push(`/workspace/${savePayload.course.slug}`);
         router.refresh();
       } catch (error) {
         setMessage(

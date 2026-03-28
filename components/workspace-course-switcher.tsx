@@ -82,17 +82,39 @@ export function WorkspaceCourseSwitcher({
     setMessage("Reading the syllabus and generating the course map...");
 
     try {
-      const response = await fetch(`${backendUrl}/api/course-map/upload`, {
-        method: "POST",
-        body: formData,
-      });
+      const generateResponse = await fetch(
+        `${backendUrl}/api/course-map/upload`,
+        { method: "POST", body: formData },
+      );
 
-      const payload = (await response.json().catch(() => null)) as
-        | { detail?: string; course?: { slug: string } }
+      const generatePayload = (await generateResponse
+        .json()
+        .catch(() => null)) as
+        | { detail?: string; course?: CourseRecord }
         | null;
 
-      if (!response.ok || !payload?.course?.slug) {
-        throw new Error(payload?.detail ?? "We could not add this course.");
+      if (!generateResponse.ok || !generatePayload?.course) {
+        throw new Error(
+          generatePayload?.detail ?? "We could not generate this course.",
+        );
+      }
+
+      setMessage("Saving course...");
+
+      const saveResponse = await fetch("/api/courses", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(generatePayload.course),
+      });
+
+      const savePayload = (await saveResponse.json().catch(() => null)) as
+        | { error?: string; course?: { slug: string } }
+        | null;
+
+      if (!saveResponse.ok || !savePayload?.course?.slug) {
+        throw new Error(
+          savePayload?.error ?? "We could not save this course.",
+        );
       }
 
       setFormStatus("idle");
@@ -105,7 +127,7 @@ export function WorkspaceCourseSwitcher({
         fileInputRef.current.value = "";
       }
 
-      router.push(`/workspace/${payload.course.slug}`);
+      router.push(`/workspace/${savePayload.course.slug}`);
       router.refresh();
     } catch (error) {
       setFormStatus("error");
