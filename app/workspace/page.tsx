@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { CourseMapWorkspace } from "@/components/course-map-workspace";
 import { WorkspaceClassState } from "@/components/workspace-class-state";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { DEMO_CLASS_RECORD } from "@/lib/class-record";
+import { DEMO_CLASS_RECORD, getVisibleClasses } from "@/lib/class-record";
 import { listClassesForCurrentUser } from "@/lib/classes";
 import { getMapKeyForClass, loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
 import { loadNodeProgressForCurrentUser } from "@/lib/node-progress";
@@ -23,7 +23,7 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
     redirect("/auth");
   }
 
-  const effectiveClasses = classes.length > 0 ? classes : [DEMO_CLASS_RECORD];
+  const effectiveClasses = getVisibleClasses(classes);
   const activeClass =
     effectiveClasses.find((course) => course.id === requestedClassId) ??
     effectiveClasses[0] ??
