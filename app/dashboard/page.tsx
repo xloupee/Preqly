@@ -89,7 +89,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </div>
 
               <header className="dashboard-header">
-                <h1>See what needs attention across every class.</h1>
                 <p>
                   Use the dashboard as a lightweight control center for uploaded classes, class status, and the
                   fastest path back into the map.

@@ -542,44 +542,120 @@ label[for],
   position: relative;
   overflow: clip;
   min-height: 100vh;
-  padding: clamp(1rem, 2vw, 1.4rem);
-}
-
-.auth-route-orb {
-  position: absolute;
-  width: 28rem;
-  height: 28rem;
-  border-radius: 999px;
-  background: radial-gradient(circle, color-mix(in oklab, white 52%, var(--accent) 48%), transparent 68%);
-  filter: blur(34px);
-  opacity: 0.45;
-  pointer-events: none;
-}
-
-.auth-route-orb-left {
-  top: -8%;
-  left: -8%;
-}
-
-.auth-route-orb-right {
-  right: -10%;
-  bottom: -12%;
+  padding: clamp(1.5rem, 2vw, 2rem);
+  background: linear-gradient(180deg, oklch(0.985 0.01 93), oklch(0.965 0.014 90));
 }
 
 .auth-route-shell {
   position: relative;
-  z-index: 1;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: min(100%, 34rem);
-  min-height: calc(100vh - clamp(2rem, 4vw, 2.8rem));
+  max-width: min(100%, 34rem);
+  min-height: calc(100vh - 4rem);
   margin: 0 auto;
 }
 
 .auth-route-panel {
   position: relative;
+  width: min(100%, 32rem);
+  animation: rise 1s ease-out 0.15s both;
+}
+
+.auth-route .auth-shell {
+  border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  border-radius: 2.2rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, white 75%, transparent), color-mix(in oklab, var(--surface) 85%, transparent)),
+    color-mix(in oklab, white 45%, transparent);
+  padding: clamp(1.8rem, 3.5vw, 2.8rem);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 35px 70px -45px var(--shadow);
+  backdrop-filter: blur(14px);
+}
+
+.auth-route .auth-toggle {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-bottom: 1.5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, white 60%, transparent);
+  padding: 0.4rem;
+  border: 1px solid color-mix(in oklab, var(--foreground) 5%, transparent);
+}
+
+.auth-route .auth-toggle-button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.85rem 1.2rem;
+  color: var(--foreground-soft);
+  font-size: 0.94rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 220ms ease;
+}
+
+.auth-route .auth-toggle-button.is-active {
+  background: white;
+  color: var(--foreground);
+  box-shadow: 
+    0 4px 12px -4px var(--shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 1);
+}
+
+.auth-route .auth-fields {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-route .auth-fields input {
+  height: 3.4rem;
+  border-radius: 1rem;
+  background: color-mix(in oklab, white 40%, transparent);
+  border-color: color-mix(in oklab, var(--foreground) 10%, transparent);
+  padding-inline: 1.1rem;
+  font-size: 1rem;
+}
+
+.auth-route .auth-fields input:focus {
+  background: white;
+  border-color: var(--accent-strong);
+}
+
+.auth-route .waitlist-controls {
+  display: flex;
+}
+
+.auth-route .waitlist-controls button {
   width: 100%;
+  height: 3.6rem;
+  border-radius: 1rem;
+  font-size: 1.05rem;
+  background: var(--foreground);
+  color: white;
+}
+
+.auth-route .waitlist-controls button:hover {
+  transform: translateY(-1px);
+  background: color-mix(in oklab, var(--foreground) 90%, black);
+}
+
+.auth-route .waitlist-label {
+  margin-bottom: 1.25rem;
+  color: var(--foreground-soft);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.auth-route .waitlist-message {
+  margin-top: 1.25rem;
+  text-align: center;
+  color: var(--foreground-muted);
 }
 
 .workspace-route {
@@ -1192,6 +1268,138 @@ label[for],
   font-size: 0.85rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.workspace-route .settings-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(32, 24, 16, 0.26);
+  backdrop-filter: blur(6px);
+  padding: 1.2rem;
+}
+
+.workspace-route .settings-modal {
+  width: min(31rem, 100%);
+  border: 1px solid color-mix(in oklab, var(--border) 82%, transparent);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface-strong) 94%, white 6%), color-mix(in oklab, var(--surface) 92%, white 8%)),
+    var(--surface);
+  padding: 1.2rem;
+  box-shadow:
+    0 38px 85px -42px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.58);
+}
+
+.workspace-route .settings-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workspace-route .settings-modal-kicker,
+.workspace-route .settings-modal-label {
+  margin: 0;
+  color: var(--foreground-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-route .settings-modal-header h2 {
+  margin: 0.35rem 0 0;
+  font-size: 1.9rem;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.workspace-route .settings-modal-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.45rem;
+  height: 2.45rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 90%, white 10%);
+  color: var(--foreground-soft);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease;
+}
+
+.workspace-route .settings-modal-close:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+  color: var(--foreground);
+}
+
+.workspace-route .settings-modal-description,
+.workspace-route .settings-modal-note {
+  margin: 0;
+  color: var(--foreground-soft);
+  line-height: 1.6;
+}
+
+.workspace-route .settings-modal-description {
+  margin-top: 0.8rem;
+}
+
+.workspace-route .settings-modal-card {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
+  border-radius: 1.2rem;
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+  padding: 1rem;
+}
+
+.workspace-route .settings-modal-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.workspace-route .settings-modal-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.9rem;
+  height: 2.9rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 60%, white 40%);
+  color: var(--accent-foreground);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.workspace-route .settings-modal-profile-copy {
+  min-width: 0;
+}
+
+.workspace-route .settings-modal-email {
+  margin: 0.35rem 0 0;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-route .settings-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  margin-top: 1.15rem;
 }
 
 .workspace-route .workspace-shell.is-collapsed .workspace-sidebar {
@@ -2486,8 +2694,21 @@ label[for],
 @media (max-width: 940px) {
   .landing-page .hero,
   .landing-page .waitlist-section,
-  .workspace-route .workspace-shell {
+  .workspace-route .workspace-shell,
+  .auth-route-shell {
     grid-template-columns: 1fr;
+  }
+
+  .auth-route-shell {
+    min-height: auto;
+    padding-top: 2rem;
+    padding-bottom: 2rem;
+  }
+
+  .auth-route-copy {
+    text-align: center;
+    margin: 0 auto;
+    margin-bottom: 2rem;
   }
 
   .landing-page .hero {
@@ -2538,13 +2759,6 @@ label[for],
   .workspace-route .learn-page-actions {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .auth-route-shell {
-    grid-template-columns: 1fr;
-    min-height: auto;
-    padding-top: 2rem;
-    padding-bottom: 2rem;
   }
 }
 
