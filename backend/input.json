@@ -1,0 +1,82 @@
+{
+  "teachAgentInput": {
+    "topic_name": "Binary Search",
+    "max_results": 5
+  },
+  "flashcardAgentInput": {
+    "topic_name": "Binary Search",
+    "videos": [
+      {
+        "video_id": "MFhxShGxHWc",
+        "title": "Binary Search Algorithm in 100 Seconds",
+        "description": "Binary Search is an algorithm that can find the index of an element in a sorted array data structure. You've likely used Binary ...",
+        "channel_title": "Fireship",
+        "published_at": "2022-03-23T15:17:06Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/MFhxShGxHWc/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=MFhxShGxHWc"
+      },
+      {
+        "video_id": "KXJSjte_OAI",
+        "title": "How Binary Search Makes Computers Much, Much Faster",
+        "description": "Featuring binary versus linear search, and non-clustered indexes. Uh, indices. However you want to say it. MORE BASICS: ...",
+        "channel_title": "Tom Scott",
+        "published_at": "2020-09-28T15:00:11Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/KXJSjte_OAI/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=KXJSjte_OAI"
+      },
+      {
+        "video_id": "fDKIpRe8GW4",
+        "title": "Binary search in 4 minutes",
+        "description": "Binary search in 4 minutes. Code: https://github.com/msambol/dsa/blob/master/search/binary_search.py Sources: 1. Introduction ...",
+        "channel_title": "Michael Sambol",
+        "published_at": "2022-10-06T01:48:23Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/fDKIpRe8GW4/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=fDKIpRe8GW4"
+      }
+    ],
+    "flashcard_count": 50
+  },
+  "testAgentInput": {
+    "topic_name": "Binary Search",
+    "videos": [
+      {
+        "video_id": "MFhxShGxHWc",
+        "title": "Binary Search Algorithm in 100 Seconds",
+        "description": "Binary Search is an algorithm that can find the index of an element in a sorted array data structure. You've likely used Binary ...",
+        "channel_title": "Fireship",
+        "published_at": "2022-03-23T15:17:06Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/MFhxShGxHWc/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=MFhxShGxHWc"
+      },
+      {
+        "video_id": "KXJSjte_OAI",
+        "title": "How Binary Search Makes Computers Much, Much Faster",
+        "description": "Featuring binary versus linear search, and non-clustered indexes. Uh, indices. However you want to say it. MORE BASICS: ...",
+        "channel_title": "Tom Scott",
+        "published_at": "2020-09-28T15:00:11Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/KXJSjte_OAI/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=KXJSjte_OAI"
+      },
+      {
+        "video_id": "fDKIpRe8GW4",
+        "title": "Binary search in 4 minutes",
+        "description": "Binary search in 4 minutes. Code: https://github.com/msambol/dsa/blob/master/search/binary_search.py Sources: 1. Introduction ...",
+        "channel_title": "Michael Sambol",
+        "published_at": "2022-10-06T01:48:23Z",
+        "thumbnail_url": "https://i.ytimg.com/vi/fDKIpRe8GW4/hqdefault.jpg",
+        "url": "https://www.youtube.com/watch?v=fDKIpRe8GW4"
+      }
+    ],
+    "question_count": 10
+  },
+  "flashcardReviewInput": {
+    "schedule": {
+      "box": 1,
+      "interval_days": 1,
+      "ease_factor": 2.5,
+      "due_at": "2026-03-29T17:40:46.697416Z",
+      "last_reviewed_at": null
+    },
+    "rating": "good"
+  }
+}
