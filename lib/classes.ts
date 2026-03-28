@@ -49,6 +49,11 @@ export async function listClassesForCurrentUser() {
     } satisfies ClassListResult;
   }
 
+  const normalizedUser = {
+    id: user.id,
+    email: user.email ?? null,
+  };
+
   const { data, error } = await supabase
     .from("classes")
     .select("id, user_id, title, syllabus_path, syllabus_filename, status, created_at, updated_at")
@@ -57,7 +62,7 @@ export async function listClassesForCurrentUser() {
   if (error) {
     if (isMissingClassSchema(error.message)) {
       return {
-        user,
+        user: normalizedUser,
         classes: [] as ClassRecord[],
         schemaReady: false,
         schemaMessage: "Run the latest Supabase migration to enable class storage.",
@@ -68,7 +73,7 @@ export async function listClassesForCurrentUser() {
   }
 
   return {
-    user,
+    user: normalizedUser,
     classes: (data ?? []).map((row) => mapClassRow(row as ClassRow)),
     schemaReady: true,
     schemaMessage: null,

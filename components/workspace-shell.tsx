@@ -3,14 +3,16 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpenText, ChevronLeft, FolderKanban, Settings, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { BookOpenText, ChevronLeft, FolderKanban, Settings } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { type ClassRecord } from "@/lib/class-record";
 import { WorkspaceClassSwitcher } from "@/components/workspace-class-switcher";
 
 const sidebarItems = [
-  { label: "Courses", href: "/workspace", icon: BookOpenText, active: true },
-  { label: "Dashboard", href: "/workspace", icon: FolderKanban, active: false },
+  { label: "Courses", href: "/workspace", icon: BookOpenText },
+  { label: "Dashboard", href: "/dashboard", icon: FolderKanban },
 ];
 
 const courseSections = ["Summary", "Versions", "Notes"];
@@ -33,6 +35,7 @@ export function WorkspaceShell({
   userEmail = null,
 }: WorkspaceShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
   const hasClassWorkspace = classes !== undefined;
   const profileLabel = userEmail ?? "Signed in";
   const initials = (userEmail?.[0] ?? "P").toUpperCase();
@@ -42,7 +45,7 @@ export function WorkspaceShell({
       <aside className="workspace-sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <Sparkles aria-hidden="true" />
+            <BrandLogo size={28} className="sidebar-logo-image" />
           </div>
           <div className="sidebar-brand-copy">
             <p className="sidebar-overline">Preqly</p>
@@ -60,17 +63,24 @@ export function WorkspaceShell({
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={item.active ? "sidebar-link is-active" : "sidebar-link"}
-              title={isCollapsed ? item.label : undefined}
-            >
-              <item.icon aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {sidebarItems.map((item) => {
+            const isActive =
+              item.href === "/workspace"
+                ? pathname === "/workspace" || pathname.startsWith("/workspace/")
+                : pathname === item.href;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={isActive ? "sidebar-link is-active" : "sidebar-link"}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <item.icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {hasClassWorkspace ? (

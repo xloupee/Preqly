@@ -228,6 +228,14 @@ label[for],
   animation: spark-rotate 6s linear infinite;
 }
 
+.landing-page .viz-logo {
+  width: auto;
+  height: auto;
+  max-width: 2.25rem;
+  max-height: 2.25rem;
+  object-fit: contain;
+}
+
 .landing-page .viz-pulse {
   position: absolute;
   top: 50%;
@@ -659,6 +667,15 @@ label[for],
 .workspace-route .sidebar-logo {
   width: 2.35rem;
   height: 2.35rem;
+}
+
+.workspace-route .sidebar-logo-image,
+.workspace-route .workspace-state-logo {
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
 }
 
 .workspace-route .sidebar-overline {
@@ -1548,6 +1565,255 @@ label[for],
   font-size: 0.82rem;
 }
 
+.workspace-route .dashboard-panel {
+  min-width: 0;
+}
+
+.workspace-route .dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  min-height: 100%;
+  padding: clamp(1rem, 2.2vw, 1.6rem);
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.24), transparent 22%),
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 80%, white 20%), color-mix(in oklab, var(--background) 94%, white 6%));
+}
+
+.workspace-route .dashboard-actions,
+.workspace-route .dashboard-section-heading,
+.workspace-route .dashboard-class-card,
+.workspace-route .dashboard-class-meta,
+.workspace-route .dashboard-next-step {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-route .dashboard-actions,
+.workspace-route .dashboard-section-heading,
+.workspace-route .dashboard-class-card {
+  justify-content: space-between;
+}
+
+.workspace-route .dashboard-actions {
+  gap: 1rem;
+}
+
+.workspace-route .dashboard-kicker,
+.workspace-route .dashboard-section-kicker,
+.workspace-route .dashboard-stat-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  color: var(--foreground-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-route .dashboard-header {
+  max-width: 52rem;
+}
+
+.workspace-route .dashboard-header h1,
+.workspace-route .dashboard-section-heading h2 {
+  margin: 0.55rem 0 0;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.workspace-route .dashboard-header h1 {
+  font-size: clamp(2.7rem, 5vw, 4.2rem);
+  line-height: 0.92;
+}
+
+.workspace-route .dashboard-header p,
+.workspace-route .dashboard-section-body {
+  margin: 0.95rem 0 0;
+  max-width: 46rem;
+  color: var(--foreground-soft);
+  line-height: 1.72;
+}
+
+.workspace-route .dashboard-notice {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--surface) 90%, white 10%);
+  padding: 0.9rem 1rem;
+  color: var(--foreground-soft);
+}
+
+.workspace-route .dashboard-overview {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.workspace-route .dashboard-stat-card,
+.workspace-route .dashboard-main-card,
+.workspace-route .dashboard-side-card {
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  border-radius: 1.35rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent 24%),
+    color-mix(in oklab, var(--surface) 80%, white 20%);
+  box-shadow:
+    0 22px 50px -42px var(--shadow),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+.workspace-route .dashboard-stat-card {
+  display: grid;
+  gap: 0.55rem;
+  padding: 1.1rem 1.2rem;
+}
+
+.workspace-route .dashboard-stat-card strong {
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: clamp(2rem, 3vw, 2.8rem);
+  font-weight: 500;
+  letter-spacing: -0.05em;
+}
+
+.workspace-route .dashboard-stat-card span {
+  color: var(--foreground-soft);
+  line-height: 1.55;
+}
+
+.workspace-route .dashboard-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.9fr);
+}
+
+.workspace-route .dashboard-main-card,
+.workspace-route .dashboard-side-card {
+  padding: 1.2rem;
+}
+
+.workspace-route .dashboard-status-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-strong) 88%, white 12%);
+  padding: 0.45rem 0.75rem;
+  color: var(--foreground-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.workspace-route .dashboard-primary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+  margin-top: 1.15rem;
+}
+
+.workspace-route .dashboard-side-column {
+  display: grid;
+  gap: 1rem;
+}
+
+.workspace-route .dashboard-class-listing,
+.workspace-route .dashboard-next-steps {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.workspace-route .dashboard-class-card,
+.workspace-route .dashboard-next-step {
+  gap: 0.8rem;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+  padding: 0.85rem 0.95rem;
+  color: var(--foreground);
+}
+
+.workspace-route .dashboard-class-card {
+  align-items: flex-start;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease;
+}
+
+.workspace-route .dashboard-class-card:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+}
+
+.workspace-route .dashboard-class-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.workspace-route .dashboard-class-title,
+.workspace-route .dashboard-class-file,
+.workspace-route .dashboard-class-time {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-route .dashboard-class-title {
+  font-weight: 600;
+}
+
+.workspace-route .dashboard-class-file,
+.workspace-route .dashboard-class-time {
+  color: var(--foreground-muted);
+  font-size: 0.8rem;
+}
+
+.workspace-route .dashboard-class-meta {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.workspace-route .dashboard-class-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--foreground-soft);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.workspace-route .dashboard-next-step {
+  align-items: flex-start;
+  color: var(--foreground-soft);
+  line-height: 1.6;
+}
+
+.workspace-route .dashboard-next-step svg,
+.workspace-route .dashboard-notice svg,
+.workspace-route .dashboard-kicker svg,
+.workspace-route .dashboard-class-link svg {
+  color: var(--accent-strong);
+}
+
 .workspace-route .learn-panel {
   min-width: 0;
 }
@@ -1771,12 +2037,18 @@ label[for],
     grid-template-columns: 14rem minmax(0, 1fr);
   }
 
+  .workspace-route .dashboard-grid,
   .workspace-route .node-detail-card {
-    width: min(20rem, calc(100% - 2rem));
+    width: auto;
   }
 
+  .workspace-route .dashboard-grid,
   .workspace-route .learn-page-grid {
     grid-template-columns: 1fr;
+  }
+
+  .workspace-route .node-detail-card {
+    width: min(20rem, calc(100% - 2rem));
   }
 }
 
@@ -1813,6 +2085,10 @@ label[for],
 
   .workspace-route .workspace-canvas {
     min-height: 40rem;
+  }
+
+  .workspace-route .dashboard-overview {
+    grid-template-columns: 1fr;
   }
 
   .workspace-route .learn-page-actions {

@@ -1,5 +1,6 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -34,7 +35,7 @@ export default function Home() {
         <div className="hero-visualization" aria-hidden="true">
           <div className="viz-core">
             <div className="viz-core-inner">
-              <Sparkles className="viz-spark" />
+              <BrandLogo size={34} priority className="viz-logo" />
             </div>
             <div className="viz-pulse" />
             <div className="viz-pulse delay-1" />

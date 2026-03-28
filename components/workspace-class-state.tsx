@@ -1,5 +1,6 @@
-import { Clock3, FileText, Sparkles } from "lucide-react";
+import { Clock3, FileText } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { getClassStatusLabel, type ClassRecord } from "@/lib/class-record";
 
 type WorkspaceClassStateProps = {
@@ -19,7 +20,7 @@ export function WorkspaceClassState({
         <div className="workspace-canvas workspace-canvas-empty">
           <div className="workspace-state-card">
             <div className="workspace-state-icon">
-              <Sparkles aria-hidden="true" />
+              <BrandLogo size={26} className="workspace-state-logo" />
             </div>
             <p className="workspace-state-kicker">Start here</p>
             <h2>Add your first class</h2>
