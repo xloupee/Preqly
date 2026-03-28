@@ -5,15 +5,19 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowUpRight,
+  Check,
   Database,
+  LoaderCircle,
   Minus,
   Plus,
+  RotateCcw,
   Search,
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
   getSmoothStepPath,
   Handle,
+  MarkerType,
   Position,
   ReactFlowProvider,
   useNodesState,
@@ -26,11 +30,14 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
+import { WorkspaceShell } from "@/components/workspace-shell";
 import { Button } from "@/components/ui/button";
-import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
+import type { MapLayoutPositions } from "@/lib/map-layouts";
+import type { CourseMapEdge, CourseMapNode, CourseRecord } from "@/lib/course-types";
 
 type GraphNodeData = CourseMapNode & {
   active: boolean;
+  completed: boolean;
   connected: boolean;
   dimmed: boolean;
   matched: boolean;
@@ -52,7 +59,22 @@ type HandleId =
   | "left-source"
   | "left-target";
 
-function collectConnectedNodeIds(selectedId: string | null) {
+type CourseMapWorkspaceProps = {
+  course: CourseRecord;
+  courses: CourseRecord[];
+  userEmail?: string | null;
+  mapKey: string | null;
+  initialLayoutPositions?: MapLayoutPositions;
+  initialCompletedNodeIds?: string[];
+  layoutPersistenceEnabled?: boolean;
+  layoutMessage?: string | null;
+  progressPersistenceEnabled?: boolean;
+  progressMessage?: string | null;
+};
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
+function collectConnectedNodeIds(selectedId: string | null, edges: CourseMapEdge[]) {
   if (!selectedId) {
     return new Set<string>();
   }
@@ -62,7 +84,7 @@ function collectConnectedNodeIds(selectedId: string | null) {
 
   while (changed) {
     changed = false;
-    for (const edge of courseMapEdges) {
+    for (const edge of edges) {
       if (connected.has(edge.source) && !connected.has(edge.target)) {
         connected.add(edge.target);
         changed = true;
@@ -77,12 +99,33 @@ function collectConnectedNodeIds(selectedId: string | null) {
   return connected;
 }
 
+function collectAdjacentNodeIds(selectedId: string | null, edges: CourseMapEdge[]) {
+  const upstream = new Set<string>();
+  const downstream = new Set<string>();
+
+  if (!selectedId) {
+    return { upstream, downstream };
+  }
+
+  for (const edge of edges) {
+    if (edge.target === selectedId) {
+      upstream.add(edge.source);
+    }
+    if (edge.source === selectedId) {
+      downstream.add(edge.target);
+    }
+  }
+
+  return { upstream, downstream };
+}
+
 function CourseNode({ data }: NodeProps<GraphNodeData>) {
   return (
     <article
       className={[
         "course-node",
         data.active ? "is-active" : "",
+        data.completed ? "is-completed" : "",
         data.connected ? "is-connected" : "",
         data.dimmed ? "is-dimmed" : "",
         data.matched ? "is-matched" : "",
@@ -100,6 +143,11 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
       <Handle className="course-node-handle" id="bottom-target" type="target" position={Position.Bottom} />
       <Handle className="course-node-handle" id="left-source" type="source" position={Position.Left} />
       <Handle className="course-node-handle" id="left-target" type="target" position={Position.Left} />
+      {data.completed ? (
+        <span className="course-node-complete-mark" aria-label="Completed topic">
+          <Check aria-hidden="true" />
+        </span>
+      ) : null}
       <p className="course-node-track">{data.track}</p>
       <h3>{data.label}</h3>
     </article>
@@ -162,41 +210,32 @@ const edgeTypes = {
   course: AnimatedCourseEdge,
 };
 
-function collectAdjacentNodeIds(selectedId: string | null) {
-  const upstream = new Set<string>();
-  const downstream = new Set<string>();
-
-  if (!selectedId) {
-    return { upstream, downstream };
-  }
-
-  for (const edge of courseMapEdges) {
-    if (edge.target === selectedId) {
-      upstream.add(edge.source);
-    }
-    if (edge.source === selectedId) {
-      downstream.add(edge.target);
-    }
-  }
-
-  return { upstream, downstream };
+function getDefaultSelectedId(course: CourseRecord) {
+  return course.nodes.find((node) => node.status === "foundation")?.id ?? course.nodes[0]?.id ?? "";
 }
 
-const initialNodes: Node<GraphNodeData>[] = courseMapNodes.map((node) => ({
-  id: node.id,
-  type: "course",
-  draggable: true,
-  selectable: true,
-  position: node.position,
-  data: {
-    ...node,
-    active: node.id === "foundation",
-    connected: false,
-    dimmed: false,
-    matched: false,
-    relation: "default",
-  },
-}));
+function buildInitialNodes(
+  course: CourseRecord,
+  initialLayoutPositions: MapLayoutPositions = {},
+  selectedId = getDefaultSelectedId(course),
+): Node<GraphNodeData>[] {
+  return course.nodes.map((node) => ({
+    id: node.id,
+    type: "course",
+    draggable: true,
+    selectable: true,
+    position: initialLayoutPositions[node.id] ?? node.position,
+    data: {
+      ...node,
+      active: node.id === selectedId,
+      completed: false,
+      connected: false,
+      dimmed: false,
+      matched: false,
+      relation: "default",
+    },
+  }));
+}
 
 function pickHandles(source: { x: number; y: number }, target: { x: number; y: number }) {
   const dx = target.x - source.x;
@@ -212,21 +251,106 @@ function pickHandles(source: { x: number; y: number }, target: { x: number; y: n
     return { sourceHandle: "right-source" as HandleId, targetHandle: "left-target" as HandleId };
   }
 
-  return { sourceHandle: "left-source", targetHandle: "right-target" };
+  return { sourceHandle: "left-source" as HandleId, targetHandle: "right-target" as HandleId };
 }
 
-function MapCanvas() {
+function buildPositionSnapshot(nodes: Node<GraphNodeData>[]) {
+  return JSON.stringify(
+    nodes
+      .map((node) => ({
+        id: node.id,
+        x: Number(node.position.x.toFixed(2)),
+        y: Number(node.position.y.toFixed(2)),
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+  );
+}
+
+function buildPositionsRecord(nodes: Node<GraphNodeData>[]): MapLayoutPositions {
+  return Object.fromEntries(nodes.map((node) => [node.id, { x: node.position.x, y: node.position.y }]));
+}
+
+function getDefaultPositions(course: CourseRecord): MapLayoutPositions {
+  return Object.fromEntries(course.nodes.map((node) => [node.id, { ...node.position }]));
+}
+
+function MapCanvas({
+  course,
+  courses,
+  userEmail,
+  mapKey,
+  initialLayoutPositions = {},
+  initialCompletedNodeIds = [],
+  layoutPersistenceEnabled = true,
+  layoutMessage = null,
+  progressPersistenceEnabled = true,
+  progressMessage = null,
+}: CourseMapWorkspaceProps) {
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [selectedId, setSelectedId] = useState<string>("foundation");
+  const defaultSelectedId = useMemo(() => getDefaultSelectedId(course), [course]);
+  const [selectedId, setSelectedId] = useState<string>(defaultSelectedId);
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
-  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(initialNodes);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(layoutPersistenceEnabled ? null : layoutMessage);
+  const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(initialCompletedNodeIds);
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
+  const [progressErrorMessage, setProgressErrorMessage] = useState<string | null>(
+    progressPersistenceEnabled ? null : progressMessage,
+  );
+  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(
+    buildInitialNodes(course, initialLayoutPositions, defaultSelectedId),
+  );
   const deferredQuery = useDeferredValue(query);
+  const hasHydratedRef = useRef(false);
+  const lastPersistedSnapshotRef = useRef("");
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const connectedIds = useMemo(() => collectConnectedNodeIds(selectedId), [selectedId]);
-  const adjacentIds = useMemo(() => collectAdjacentNodeIds(selectedId), [selectedId]);
+  const connectedIds = useMemo(
+    () => collectConnectedNodeIds(selectedId, course.edges),
+    [course.edges, selectedId],
+  );
+  const adjacentIds = useMemo(
+    () => collectAdjacentNodeIds(selectedId, course.edges),
+    [course.edges, selectedId],
+  );
+  const positionSnapshot = useMemo(() => buildPositionSnapshot(nodes), [nodes]);
+  const completedNodeIdSet = useMemo(() => new Set(completedNodeIds), [completedNodeIds]);
+  const completedCount = completedNodeIds.length;
+
+  useEffect(() => {
+    const nextSelectedId = getDefaultSelectedId(course);
+    const nextNodes = buildInitialNodes(course, initialLayoutPositions, nextSelectedId);
+    const nextSnapshot = buildPositionSnapshot(nextNodes);
+
+    setNodes(nextNodes);
+    setSelectedId(nextSelectedId);
+    setQuery("");
+    lastPersistedSnapshotRef.current = nextSnapshot;
+    hasHydratedRef.current = true;
+    setSaveState("idle");
+    setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
+  }, [course, initialLayoutPositions, layoutMessage, layoutPersistenceEnabled, mapKey, setNodes]);
+
+  useEffect(() => {
+    setCompletedNodeIds(initialCompletedNodeIds);
+    setIsSavingProgress(false);
+    setProgressErrorMessage(progressPersistenceEnabled ? null : progressMessage);
+  }, [initialCompletedNodeIds, mapKey, progressMessage, progressPersistenceEnabled]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const matchedIds = useMemo(() => {
     if (!normalizedQuery) {
@@ -234,21 +358,85 @@ function MapCanvas() {
     }
 
     return new Set(
-      courseMapNodes
+      course.nodes
         .filter((node) => {
           const haystack = [node.label, node.summary, node.track].join(" ").toLowerCase();
           return haystack.includes(normalizedQuery);
         })
         .map((node) => node.id),
     );
-  }, [normalizedQuery]);
+  }, [course.nodes, normalizedQuery]);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) {
+      lastPersistedSnapshotRef.current = positionSnapshot;
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (!layoutPersistenceEnabled || !mapKey) {
+      return;
+    }
+
+    if (positionSnapshot === lastPersistedSnapshotRef.current) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
+    setSaveState("saving");
+    setSaveMessage(null);
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const currentNodes = nodes;
+
+      try {
+        const response = await fetch("/api/layouts", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mapKey,
+            positions: buildPositionsRecord(currentNodes),
+          }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error || "We could not save your layout.");
+        }
+
+        lastPersistedSnapshotRef.current = buildPositionSnapshot(currentNodes);
+        setSaveState("saved");
+        setSaveMessage(null);
+        resetTimeoutRef.current = setTimeout(() => {
+          setSaveState("idle");
+        }, 1400);
+      } catch (error) {
+        setSaveState("error");
+        setSaveMessage(error instanceof Error ? error.message : "We could not save your layout.");
+      }
+    }, 520);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [layoutPersistenceEnabled, mapKey, nodes, positionSnapshot]);
 
   useEffect(() => {
     if (!normalizedQuery || matchedIds.size === 0) {
       return;
     }
 
-    const firstMatch = courseMapNodes.find((node) => matchedIds.has(node.id));
+    const firstMatch = course.nodes.find((node) => matchedIds.has(node.id));
     if (!firstMatch) {
       return;
     }
@@ -261,12 +449,12 @@ function MapCanvas() {
       zoom: 0.92,
     });
     setSelectedId(firstMatch.id);
-  }, [graphApi, matchedIds, nodes, normalizedQuery]);
+  }, [course.nodes, graphApi, matchedIds, nodes, normalizedQuery]);
 
   useEffect(() => {
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const source = courseMapNodes.find((courseNode) => courseNode.id === node.id);
+        const source = course.nodes.find((courseNode) => courseNode.id === node.id);
         if (!source) {
           return node;
         }
@@ -290,6 +478,7 @@ function MapCanvas() {
           data: {
             ...source,
             active,
+            completed: completedNodeIdSet.has(node.id),
             connected,
             matched,
             relation,
@@ -298,24 +487,27 @@ function MapCanvas() {
         };
       }),
     );
-  }, [adjacentIds.downstream, adjacentIds.upstream, connectedIds, matchedIds, selectedId, setNodes]);
+  }, [
+    adjacentIds.downstream,
+    adjacentIds.upstream,
+    completedNodeIdSet,
+    connectedIds,
+    course.nodes,
+    matchedIds,
+    selectedId,
+    setNodes,
+  ]);
 
-  const nodeLookup = useMemo(
-    () => Object.fromEntries(nodes.map((node) => [node.id, node])),
-    [nodes],
-  );
+  const nodeLookup = useMemo(() => Object.fromEntries(nodes.map((node) => [node.id, node])), [nodes]);
 
   const edges = useMemo<Edge<GraphEdgeData>[]>(() => {
-    return courseMapEdges.map((edge) => {
+    return course.edges.map((edge) => {
       const sourceNode = nodeLookup[edge.source];
       const targetNode = nodeLookup[edge.target];
-      const active = selectedId
-        ? connectedIds.has(edge.source) && connectedIds.has(edge.target)
-        : false;
+      const active = selectedId ? connectedIds.has(edge.source) && connectedIds.has(edge.target) : false;
       const emphasizedBySearch = matchedIds.size > 0 && matchedIds.has(edge.source) && matchedIds.has(edge.target);
       const directlyUpstream = edge.target === selectedId;
       const directlyDownstream = edge.source === selectedId;
-      const directlyConnected = directlyUpstream || directlyDownstream;
       const { sourceHandle, targetHandle } =
         sourceNode && targetNode
           ? pickHandles(sourceNode.position, targetNode.position)
@@ -330,6 +522,7 @@ function MapCanvas() {
         type: "course",
         sourceHandle,
         targetHandle,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
         data: {
           className: [
             "course-edge",
@@ -344,7 +537,7 @@ function MapCanvas() {
         },
         style: {
           stroke:
-            directlyConnected || emphasizedBySearch
+            directlyUpstream || directlyDownstream || emphasizedBySearch
               ? "rgba(122, 103, 71, 0.84)"
               : active
                 ? "rgba(122, 103, 71, 0.66)"
@@ -367,9 +560,9 @@ function MapCanvas() {
         },
       };
     });
-  }, [connectedIds, matchedIds, nodeLookup, selectedId]);
+  }, [connectedIds, course.edges, matchedIds, nodeLookup, selectedId]);
 
-  const selectedNode = courseMapNodes.find((node) => node.id === selectedId) ?? courseMapNodes[0];
+  const selectedNode = course.nodes.find((node) => node.id === selectedId) ?? course.nodes[0];
 
   const handleCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const canvas = canvasRef.current;
@@ -390,106 +583,265 @@ function MapCanvas() {
     setIsPointerInside(false);
   };
 
+  const handleResetLayout = async () => {
+    const defaultPositions = getDefaultPositions(course);
+    const resetNodes = buildInitialNodes(course, defaultPositions, selectedId);
+    const resetSnapshot = buildPositionSnapshot(resetNodes);
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        position: defaultPositions[node.id] ?? node.position,
+      })),
+    );
+    lastPersistedSnapshotRef.current = resetSnapshot;
+
+    if (!layoutPersistenceEnabled || !mapKey) {
+      setSaveState("idle");
+      setSaveMessage(layoutMessage);
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setSaveMessage(null);
+
+      const response = await fetch(`/api/layouts?mapKey=${encodeURIComponent(mapKey)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "We could not reset your layout.");
+      }
+
+      setSaveState("saved");
+      resetTimeoutRef.current = setTimeout(() => {
+        setSaveState("idle");
+      }, 1400);
+    } catch (error) {
+      setSaveState("error");
+      setSaveMessage(error instanceof Error ? error.message : "We could not reset your layout.");
+    }
+  };
+
+  const handleToggleNodeDone = async () => {
+    if (!selectedNode) {
+      return;
+    }
+
+    if (!mapKey || !progressPersistenceEnabled) {
+      setProgressErrorMessage(progressMessage ?? "Node progress is not available yet.");
+      return;
+    }
+
+    const nodeId = selectedNode.id;
+    const wasCompleted = completedNodeIdSet.has(nodeId);
+    const nextCompletedNodeIds = wasCompleted
+      ? completedNodeIds.filter((id) => id !== nodeId)
+      : [...completedNodeIds, nodeId];
+
+    setCompletedNodeIds(nextCompletedNodeIds);
+    setIsSavingProgress(true);
+    setProgressErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/node-progress", {
+        method: wasCompleted ? "DELETE" : "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapKey,
+          nodeId,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "We could not update node progress.");
+      }
+    } catch (error) {
+      setCompletedNodeIds(completedNodeIds);
+      setProgressErrorMessage(error instanceof Error ? error.message : "We could not update node progress.");
+    } finally {
+      setIsSavingProgress(false);
+    }
+  };
+
+  if (!selectedNode) {
+    return (
+      <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+        <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
+          <div className="workspace-canvas workspace-canvas-empty">
+            <div className="workspace-state-card">
+              <p className="workspace-state-kicker">No topics yet</p>
+              <h2>{course.title}</h2>
+              <p>This course does not have any generated topics yet.</p>
+            </div>
+          </div>
+        </section>
+      </WorkspaceShell>
+    );
+  }
+
+  const isSelectedNodeCompleted = completedNodeIdSet.has(selectedNode.id);
+
   return (
-    <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
-      <div
-        ref={canvasRef}
-        className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
-        onPointerMove={handleCanvasPointerMove}
-        onPointerLeave={handleCanvasPointerLeave}
-      >
-        <div className="graph-controls-panel">
-          <button
-            type="button"
-            className="graph-control-button"
-            aria-label="Zoom in"
-            onClick={() => graphApi.zoomIn({ duration: 250 })}
-          >
-            <Plus aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="graph-control-button"
-            aria-label="Zoom out"
-            onClick={() => graphApi.zoomOut({ duration: 250 })}
-          >
-            <Minus aria-hidden="true" />
-          </button>
-          <label className="graph-search">
-            <Search aria-hidden="true" />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search topics"
-              aria-label="Search map nodes"
-            />
-          </label>
-        </div>
-
-        <ReactFlow
-          fitView
-          fitViewOptions={{ padding: 0.28, minZoom: 0.34 }}
-          minZoom={0.22}
-          maxZoom={1.5}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodesConnectable={false}
-          proOptions={{ hideAttribution: true }}
-          connectionLineType={ConnectionLineType.SmoothStep}
-          onNodesChange={onNodesChange}
-          defaultEdgeOptions={{
-            type: "smoothstep",
-            style: { strokeLinecap: "round" },
-          }}
-          onNodeClick={(_, node) => setSelectedId(node.id)}
-        />
-
-        <aside className="node-detail-card" aria-live="polite">
-          <p className="node-detail-kicker">{selectedNode.track}</p>
-          <div className="node-detail-heading">
-            <h2>{selectedNode.label}</h2>
-            <span>{selectedNode.duration}</span>
+    <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+      <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
+        <div
+          ref={canvasRef}
+          className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
+          onPointerMove={handleCanvasPointerMove}
+          onPointerLeave={handleCanvasPointerLeave}
+        >
+          <div className="graph-controls-panel">
+            <button
+              type="button"
+              className="graph-control-button"
+              aria-label="Zoom in"
+              onClick={() => graphApi.zoomIn({ duration: 250 })}
+            >
+              <Plus aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="graph-control-button"
+              aria-label="Zoom out"
+              onClick={() => graphApi.zoomOut({ duration: 250 })}
+            >
+              <Minus aria-hidden="true" />
+            </button>
+            <label className="graph-search">
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search topics"
+                aria-label="Search map nodes"
+              />
+            </label>
+            <button
+              type="button"
+              className="graph-control-button graph-control-reset"
+              onClick={handleResetLayout}
+              aria-label="Reset layout"
+            >
+              <RotateCcw aria-hidden="true" />
+              <span>Reset layout</span>
+            </button>
           </div>
-          <p className="node-detail-summary">{selectedNode.summary}</p>
-          <div className="node-detail-meta">
-            <span className={`node-status-chip status-${selectedNode.status}`}>
-              {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
+
+          <ReactFlow
+            fitView
+            fitViewOptions={{ padding: 0.28, minZoom: 0.34 }}
+            minZoom={0.22}
+            maxZoom={1.5}
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            nodesConnectable={false}
+            proOptions={{ hideAttribution: true }}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            onNodesChange={onNodesChange}
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              style: { strokeLinecap: "round" },
+            }}
+            onNodeClick={(_, node) => setSelectedId(node.id)}
+          />
+
+          <aside className="node-detail-card" aria-live="polite">
+            <p className="node-detail-kicker">{selectedNode.track}</p>
+            <div className="node-detail-heading">
+              <h2>{selectedNode.label}</h2>
+              <span>{selectedNode.duration}</span>
+            </div>
+            <p className="node-detail-summary">{selectedNode.summary}</p>
+            <div className="node-detail-meta">
+              <span className={`node-status-chip status-${selectedNode.status}`}>
+                {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
+              </span>
+              <span className="node-status-chip node-status-chip-muted">
+                {connectedIds.size} linked topics
+              </span>
+              <span
+                className={`node-status-chip ${
+                  isSelectedNodeCompleted ? "node-status-chip-complete" : "node-status-chip-muted"
+                }`}
+              >
+                {completedCount} / {course.nodes.length} done
+              </span>
+            </div>
+            <div className="node-outcomes">
+              {selectedNode.outcomes.map((outcome) => (
+                <div key={outcome} className="node-outcome-item">
+                  <ArrowUpRight aria-hidden="true" />
+                  <span>{outcome}</span>
+                </div>
+              ))}
+            </div>
+            <div className="node-detail-actions">
+              <Button asChild size="sm">
+                <Link href={`/workspace/${course.slug}/learn/${selectedNode.slug}`}>Learn</Link>
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={isSelectedNodeCompleted ? "secondary" : "default"}
+                onClick={handleToggleNodeDone}
+                disabled={!progressPersistenceEnabled || isSavingProgress}
+              >
+                {isSavingProgress ? (
+                  <>
+                    <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                    Saving
+                  </>
+                ) : isSelectedNodeCompleted ? (
+                  <>
+                    <Check aria-hidden="true" />
+                    Marked done
+                  </>
+                ) : (
+                  "Mark done"
+                )}
+              </Button>
+            </div>
+            {progressErrorMessage ? <p className="node-detail-feedback">{progressErrorMessage}</p> : null}
+          </aside>
+
+          <div className="canvas-caption">
+            <Database aria-hidden="true" />
+            <span>
+              {saveState === "saving" ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                  Saving layout
+                </>
+              ) : saveState === "saved" ? (
+                "Layout saved"
+              ) : saveState === "error" ? (
+                saveMessage ?? "Layout save failed"
+              ) : layoutPersistenceEnabled ? (
+                "Drag nodes to shape your map"
+              ) : (
+                layoutMessage ?? "Saved layouts are not available yet"
+              )}
             </span>
-            <span className="node-status-chip node-status-chip-muted">
-              {connectedIds.size} linked topics
-            </span>
           </div>
-          <div className="node-outcomes">
-            {selectedNode.outcomes.map((outcome) => (
-              <div key={outcome} className="node-outcome-item">
-                <ArrowUpRight aria-hidden="true" />
-                <span>{outcome}</span>
-              </div>
-            ))}
-          </div>
-          <div className="node-detail-actions">
-            <Button asChild size="sm">
-              <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
-            </Button>
-          </div>
-        </aside>
-
-        <div className="canvas-caption">
-          <Database aria-hidden="true" />
-          <span>Prerequisite map synced to the current course shell</span>
         </div>
-      </div>
-    </section>
+      </section>
+    </WorkspaceShell>
   );
 }
 
-export function CourseMapWorkspace() {
+export function CourseMapWorkspace(props: CourseMapWorkspaceProps) {
   return (
     <ReactFlowProvider>
-      <MapCanvas />
+      <MapCanvas {...props} />
     </ReactFlowProvider>
   );
 }

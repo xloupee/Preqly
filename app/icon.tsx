@@ -11,9 +11,7 @@ export const size = {
 export const contentType = "image/png";
 
 export default async function Icon() {
-  const logoBuffer = await readFile(
-    join(process.cwd(), "Gemini_Generated_Image_3vx1lr3vx1lr3vx1.png"),
-  );
+  const logoBuffer = await readFile(join(process.cwd(), "new_logo.png"));
   const logoDataUrl = `data:image/png;base64,${logoBuffer.toString("base64")}`;
 
   return new ImageResponse(

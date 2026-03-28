@@ -3,61 +3,59 @@ import { ArrowLeft, ArrowUpRight, Compass } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
 import { WorkspaceShell } from "@/components/workspace-shell";
-import { DEMO_CLASS_RECORD } from "@/lib/class-record";
-import { listClassesForCurrentUser } from "@/lib/classes";
-import {
-  courseMapLessons,
-  getCourseLessonBySlug,
-  getCourseNodeBySlug,
-} from "@/lib/course-map-data";
+import { createClient } from "@/lib/supabase/server";
 
 type LearnPageProps = {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ courseSlug: string; topicSlug: string }>;
 };
 
-export function generateStaticParams() {
-  return courseMapLessons.map((lesson) => ({
-    slug: lesson.slug,
-  }));
-}
-
 export default async function LearnTopicPage({ params }: LearnPageProps) {
-  const { slug } = await params;
-  const lesson = getCourseLessonBySlug(slug);
-  const node = getCourseNodeBySlug(slug);
-  const { user, classes, schemaReady, schemaMessage } = await listClassesForCurrentUser();
-
-  if (!lesson || !node) {
-    notFound();
-  }
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/auth");
   }
 
-  const effectiveClasses = classes.length > 0 ? classes : [DEMO_CLASS_RECORD];
-  const activeClass = effectiveClasses[0] ?? DEMO_CLASS_RECORD;
+  const { courseSlug, topicSlug } = await params;
+  const [course, courses] = await Promise.all([
+    getCourseBySlug(courseSlug),
+    getAllCourses(),
+  ]);
+
+  if (!course) {
+    notFound();
+  }
+
+  const lesson = course.lessons.find((entry) => entry.slug === topicSlug);
+  const node = course.nodes.find((entry) => entry.slug === topicSlug);
+
+  if (!lesson || !node) {
+    notFound();
+  }
 
   const relatedTopics = lesson.relatedSlugs
-    .map((relatedSlug) => getCourseNodeBySlug(relatedSlug))
-    .filter((topic) => topic !== undefined);
+    .map((relatedSlug) =>
+      course.nodes.find((courseNode) => courseNode.slug === relatedSlug),
+    )
+    .filter((topic): topic is NonNullable<typeof topic> => Boolean(topic));
 
   return (
     <main className="workspace-route">
       <section className="course-hero">
-        <WorkspaceShell
-          classes={effectiveClasses}
-          activeClass={activeClass}
-          classesEnabled={schemaReady}
-          classesMessage={schemaMessage}
-          userEmail={user.email}
-        >
-          <section className="workspace-canvas-panel learn-panel" aria-label={`Learn more about ${node.label}`}>
+        <WorkspaceShell currentCourse={course} courses={courses} userEmail={user.email ?? null}>
+          <section
+            className="workspace-canvas-panel learn-panel"
+            aria-label={`Learn more about ${node.label}`}
+          >
             <div className="learn-page">
               <div className="learn-page-actions">
                 <Button asChild size="sm" variant="secondary">
-                  <Link href="/workspace">
+                  <Link href={`/workspace/${course.slug}`}>
                     <ArrowLeft aria-hidden="true" />
                     Back to map
                   </Link>
@@ -104,7 +102,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
                       {relatedTopics.map((topic) => (
                         <Link
                           key={topic.slug}
-                          href={`/workspace/learn/${topic.slug}`}
+                          href={`/workspace/${course.slug}/learn/${topic.slug}`}
                           className="learn-related-link"
                         >
                           <span>{topic.label}</span>
@@ -117,7 +115,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
                   <div className="learn-sidebar-footer">
                     <p>Continue exploring the map after reviewing this topic.</p>
                     <Button asChild size="sm">
-                      <Link href="/workspace">Return to workspace</Link>
+                      <Link href={`/workspace/${course.slug}`}>Return to workspace</Link>
                     </Button>
                   </div>
                 </aside>

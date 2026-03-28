@@ -35,6 +35,12 @@ export const DEMO_CLASS_RECORD: ClassRecord = {
   updatedAt: demoTimestamp,
 };
 
+export function getVisibleClasses(classes: ClassRecord[]) {
+  const withoutDemoDuplicate = classes.filter((course) => course.id !== DEMO_CLASS_RECORD.id);
+
+  return [DEMO_CLASS_RECORD, ...withoutDemoDuplicate];
+}
+
 export function mapClassRow(row: ClassRow): ClassRecord {
   return {
     id: row.id,

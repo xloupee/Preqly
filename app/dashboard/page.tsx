@@ -4,7 +4,7 @@ import { ArrowUpRight, Compass, FileClock, Layers3 } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
-import { DEMO_CLASS_RECORD, getClassStatusLabel } from "@/lib/class-record";
+import { DEMO_CLASS_RECORD, getClassStatusLabel, getVisibleClasses } from "@/lib/class-record";
 import { listClassesForCurrentUser } from "@/lib/classes";
 import { WorkspaceShell } from "@/components/workspace-shell";
 
@@ -53,7 +53,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
     redirect("/auth");
   }
 
-  const effectiveClasses = classes.length > 0 ? classes : [DEMO_CLASS_RECORD];
+  const effectiveClasses = getVisibleClasses(classes);
   const focusClass =
     effectiveClasses.find((course) => course.id === requestedClassId) ??
     effectiveClasses[0] ??
