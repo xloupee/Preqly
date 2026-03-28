@@ -1,12 +1,12 @@
 @import "tailwindcss";
 
 :root {
-  --background: oklch(0.971 0.017 91.4);
-  --background-strong: oklch(0.95 0.03 90.2);
-  --surface: oklch(0.988 0.01 93.1 / 0.88);
-  --surface-strong: oklch(0.958 0.025 90.8 / 0.95);
-  --surface-cream: oklch(0.94 0.02 85);
-  --surface-cream-strong: oklch(0.97 0.016 90);
+  --background: oklch(0.948 0.019 89.8);
+  --background-strong: oklch(0.922 0.03 88.4);
+  --surface: oklch(0.968 0.013 90.8 / 0.9);
+  --surface-strong: oklch(0.938 0.024 89.1 / 0.95);
+  --surface-cream: oklch(0.918 0.022 83.6);
+  --surface-cream-strong: oklch(0.946 0.018 87.8);
   --foreground: oklch(0.34 0.03 45.8);
   --foreground-soft: oklch(0.43 0.028 52.1);
   --foreground-muted: oklch(0.56 0.022 61.3);
@@ -30,7 +30,7 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, oklch(0.985 0.01 93), oklch(0.965 0.014 90));
+  background: linear-gradient(180deg, oklch(0.965 0.012 91.2), oklch(0.938 0.017 88.2));
   color: var(--foreground);
   font-family:
     "Avenir Next",
@@ -319,25 +319,25 @@ input {
 }
 
 .workspace-route {
-  --background: oklch(0.16 0.01 80);
-  --background-raised: oklch(0.2 0.013 80);
-  --background-soft: oklch(0.24 0.016 80);
-  --surface: oklch(0.27 0.018 80 / 0.82);
-  --surface-strong: oklch(0.31 0.02 80 / 0.92);
-  --foreground: oklch(0.93 0.016 92);
-  --foreground-soft: oklch(0.77 0.012 88);
-  --foreground-muted: oklch(0.63 0.01 84);
+  --background: oklch(0.946 0.019 89.4);
+  --background-raised: oklch(0.929 0.022 88.4);
+  --background-soft: oklch(0.914 0.025 86.8);
+  --surface: oklch(0.963 0.013 90.2 / 0.84);
+  --surface-strong: oklch(0.936 0.024 88.5 / 0.92);
+  --foreground: oklch(0.34 0.03 45.8);
+  --foreground-soft: oklch(0.43 0.028 52.1);
+  --foreground-muted: oklch(0.56 0.022 61.3);
   --foreground-dark: oklch(0.24 0.018 58);
-  --accent: oklch(0.76 0.05 80);
-  --accent-strong: oklch(0.71 0.052 77);
-  --accent-foreground: oklch(0.18 0.015 60);
-  --ring: oklch(0.72 0.048 80);
-  --border: oklch(0.42 0.015 80 / 0.65);
-  --shadow: oklch(0.03 0.01 60 / 0.6);
+  --accent: oklch(0.79 0.067 80.3);
+  --accent-strong: oklch(0.74 0.082 76.8);
+  --accent-foreground: oklch(0.34 0.03 45.8);
+  --ring: oklch(0.79 0.067 80.3);
+  --border: oklch(0.86 0.03 87.9 / 0.65);
+  --shadow: oklch(0.18 0.015 60 / 0.12);
   min-height: 100vh;
   background:
     radial-gradient(circle at top, color-mix(in oklab, var(--background-soft) 55%, transparent), transparent 38%),
-    linear-gradient(180deg, oklch(0.145 0.012 78), oklch(0.13 0.012 78));
+    linear-gradient(180deg, oklch(0.962 0.012 90.4), oklch(0.934 0.017 87.8));
 }
 
 .workspace-route .course-hero {
@@ -356,7 +356,7 @@ input {
     color-mix(in oklab, var(--background-raised) 80%, transparent);
   box-shadow:
     0 30px 70px -50px var(--shadow),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.45);
   overflow: hidden;
 }
 
@@ -366,8 +366,8 @@ input {
   gap: 1.4rem;
   border-right: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent 25%),
-    color-mix(in oklab, var(--background-raised) 88%, black 12%);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent 25%),
+    color-mix(in oklab, var(--background-raised) 88%, white 12%);
   padding: 1rem;
 }
 
@@ -388,7 +388,7 @@ input {
   border-radius: 0.8rem;
   background: color-mix(in oklab, var(--surface) 86%, transparent);
   color: var(--foreground-soft);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
 }
 
 .workspace-route .sidebar-logo {
@@ -492,16 +492,46 @@ input {
 }
 
 .workspace-route .workspace-canvas {
+  --cursor-x: 50%;
+  --cursor-y: 50%;
   position: relative;
   height: 100%;
   min-height: 46rem;
   overflow: hidden;
   background:
-    radial-gradient(circle, rgba(218, 210, 192, 0.12) 1px, transparent 1.2px),
-    radial-gradient(circle at 12% 20%, rgba(255, 248, 230, 0.04), transparent 18%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.01), transparent 16%),
-    oklch(0.12 0.01 80);
-  background-size: 18px 18px, auto, auto, auto;
+    radial-gradient(circle at center, rgba(166, 146, 105, 0.22) 0 1.15px, transparent 1.35px),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.42) 0 0.7px, transparent 0.9px),
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.4), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 16%),
+    oklch(0.96 0.015 90);
+  background-position:
+    0 0,
+    9px 9px,
+    0 0,
+    0 0,
+    0 0;
+  background-size:
+    18px 18px,
+    18px 18px,
+    auto,
+    auto,
+    auto;
+}
+
+.workspace-route .workspace-canvas::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background:
+    radial-gradient(circle 8px at var(--cursor-x) var(--cursor-y), rgba(255, 250, 233, 0.95) 0, rgba(255, 250, 233, 0.72) 42%, transparent 78%),
+    radial-gradient(circle 140px at var(--cursor-x) var(--cursor-y), rgba(214, 184, 116, 0.26) 0, rgba(214, 184, 116, 0.12) 32%, transparent 72%);
+  transition: opacity 180ms ease;
+  content: "";
+}
+
+.workspace-route .workspace-canvas.is-pointer-active::after {
+  opacity: 1;
 }
 
 .workspace-route .react-flow {
@@ -512,6 +542,8 @@ input {
 .workspace-route .react-flow__pane,
 .workspace-route .react-flow__viewport {
   cursor: grab;
+  position: relative;
+  z-index: 1;
 }
 
 .workspace-route .react-flow__node {
@@ -523,12 +555,35 @@ input {
   stroke-linecap: round;
 }
 
+.workspace-route .course-edge path {
+  opacity: 1;
+  filter: drop-shadow(0 3px 10px rgba(122, 103, 71, 0.14));
+}
+
+.workspace-route .course-edge.is-visible path {
+  filter: drop-shadow(0 4px 10px rgba(122, 103, 71, 0.18));
+}
+
+.workspace-route .course-edge.is-active path {
+  filter: drop-shadow(0 5px 14px rgba(122, 103, 71, 0.28));
+}
+
+.workspace-route .course-edge.is-upstream path,
+.workspace-route .course-edge.is-downstream path {
+  filter: drop-shadow(0 8px 18px rgba(122, 103, 71, 0.34));
+}
+
+.workspace-route .react-flow__edge-marker {
+  fill: rgba(122, 103, 71, 0.72);
+}
+
 .workspace-route .react-flow__edge-textbg {
   fill: transparent;
 }
 
 .workspace-route .course-node {
   width: 11rem;
+  overflow: visible;
   border: 1px solid rgba(62, 53, 41, 0.28);
   border-radius: 1rem;
   background:
@@ -546,6 +601,15 @@ input {
     border-color 220ms ease;
 }
 
+.workspace-route .course-node-handle {
+  width: 0.65rem;
+  height: 0.65rem;
+  border: 0;
+  background: transparent;
+  opacity: 0;
+  pointer-events: none;
+}
+
 .workspace-route .course-node:hover,
 .workspace-route .course-node.is-active {
   transform: translateY(-2px);
@@ -559,8 +623,37 @@ input {
   border-color: rgba(122, 103, 71, 0.58);
 }
 
+.workspace-route .course-node.is-connected:not(.is-active) {
+  border-color: rgba(122, 103, 71, 0.42);
+  box-shadow:
+    0 18px 34px -24px rgba(0, 0, 0, 0.72),
+    0 0 0 1px rgba(218, 184, 104, 0.18),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.75);
+}
+
 .workspace-route .course-node.is-dimmed {
   opacity: 0.3;
+}
+
+.workspace-route .course-node.relation-prerequisite {
+  border-color: rgba(136, 109, 62, 0.48);
+  box-shadow:
+    0 18px 36px -24px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.74);
+}
+
+.workspace-route .course-node.relation-unlocks {
+  border-color: rgba(136, 109, 62, 0.48);
+  box-shadow:
+    0 18px 36px -24px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.74);
+}
+
+.workspace-route .course-node.relation-selected {
+  box-shadow:
+    0 24px 44px -24px rgba(0, 0, 0, 0.78),
+    0 0 0 1px rgba(218, 184, 104, 0.22),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.78);
 }
 
 .workspace-route .course-node-track {
@@ -631,7 +724,7 @@ input {
   background: color-mix(in oklab, var(--surface) 90%, transparent);
   padding: 0.75rem 0.9rem;
   color: var(--foreground-soft);
-  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
 }
 
 .workspace-route .graph-search input {
@@ -655,12 +748,12 @@ input {
   border: 1px solid color-mix(in oklab, var(--border) 90%, transparent);
   border-radius: 1.35rem;
   background:
-    linear-gradient(180deg, color-mix(in oklab, var(--surface-strong) 90%, transparent), color-mix(in oklab, var(--background-raised) 92%, black 8%)),
+    linear-gradient(180deg, color-mix(in oklab, var(--surface-strong) 92%, transparent), color-mix(in oklab, var(--background-raised) 94%, white 6%)),
     color-mix(in oklab, var(--background-raised) 92%, transparent);
   padding: 1.2rem 1.2rem 1.15rem;
   box-shadow:
-    0 30px 60px -38px rgba(0, 0, 0, 0.9),
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+    0 30px 60px -38px rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(10px);
 }
 
@@ -757,6 +850,12 @@ input {
   padding: 0.65rem 0.9rem;
   color: var(--foreground-soft);
   font-size: 0.82rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-route .workspace-canvas::after {
+    display: none;
+  }
 }
 
 @keyframes rise {

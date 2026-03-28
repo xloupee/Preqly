@@ -2,9 +2,6 @@ import { ArrowDownRight, Compass, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { SyllabusUpload } from "@/components/syllabus-upload";
-import { WaitlistForm } from "@/components/waitlist-form";
-
-const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
 
 export default function Home() {
   return (
@@ -56,30 +53,6 @@ export default function Home() {
             Follow-up prompts
           </div>
         </div>
-      </section>
-
-      <section className="compatibility">
-        <p className="compatibility-label">Works with</p>
-        <div className="compatibility-strip">
-          {partners.map((partner) => (
-            <span className="partner-pill" key={partner}>
-              {partner}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="waitlist-section" id="waitlist">
-        <div className="waitlist-copy">
-          <p className="section-kicker">Early access</p>
-          <h2>Bring structure to lectures before students fall behind.</h2>
-          <p>
-            Start with a focused beta waitlist while the product surface is still
-            lean. Use the landing page for onboarding, then move directly into the
-            interactive workspace when you want to explore the course map.
-          </p>
-        </div>
-        <WaitlistForm />
       </section>
     </main>
   );
