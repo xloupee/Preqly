@@ -609,9 +609,117 @@ label[for],
   padding: 0;
 }
 
+.workspace-route .course-library-page {
+  display: grid;
+  gap: 1.6rem;
+  width: min(100%, 82rem);
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.workspace-route .course-library-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: end;
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 90%, transparent), color-mix(in oklab, var(--background-raised) 88%, transparent)),
+    color-mix(in oklab, var(--background-raised) 80%, transparent);
+  padding: clamp(1.4rem, 3vw, 2rem);
+}
+
+.workspace-route .course-library-kicker,
+.workspace-route .course-upload-kicker {
+  margin: 0 0 0.7rem;
+  color: var(--foreground-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-route .course-library-header h1,
+.workspace-route .course-upload-copy h2 {
+  margin: 0;
+  font-size: clamp(2.2rem, 5vw, 3.4rem);
+  line-height: 0.94;
+}
+
+.workspace-route .course-library-header p:last-child,
+.workspace-route .course-upload-copy p:last-child {
+  max-width: 42rem;
+  margin: 1rem 0 0;
+  color: var(--foreground-soft);
+  line-height: 1.7;
+}
+
+.workspace-route .course-library-grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+}
+
+.workspace-route .course-library-card,
+.workspace-route .course-upload-card {
+  display: grid;
+  gap: 1.25rem;
+  border: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+  border-radius: 1.4rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--surface) 92%, transparent), color-mix(in oklab, var(--background-raised) 88%, transparent)),
+    color-mix(in oklab, var(--background-raised) 80%, transparent);
+  padding: 1.3rem;
+  box-shadow: 0 30px 70px -50px var(--shadow);
+}
+
+.workspace-route .course-library-card-top h2 {
+  margin: 0;
+  font-size: 1.55rem;
+  line-height: 1.05;
+}
+
+.workspace-route .course-library-card-top p:last-child {
+  margin: 0.8rem 0 0;
+  color: var(--foreground-soft);
+  line-height: 1.65;
+}
+
+.workspace-route .course-library-card-kicker {
+  margin: 0 0 0.6rem;
+  color: var(--foreground-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.workspace-route .course-library-card-meta,
+.workspace-route .course-upload-file,
+.workspace-route .sidebar-course-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.workspace-route .course-library-card-meta span,
+.workspace-route .course-upload-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--foreground-soft);
+  font-size: 0.93rem;
+}
+
+.workspace-route .course-upload-card {
+  align-content: start;
+}
+
 .workspace-route .workspace-shell {
   display: grid;
-  min-height: 100vh;
+  min-height: 100dvh;
+  height: 100dvh;
   width: 100vw;
   grid-template-columns: 17.5rem minmax(0, 1fr);
   border: 0;
@@ -633,6 +741,7 @@ label[for],
   display: flex;
   flex-direction: column;
   gap: 1.4rem;
+  min-height: 0;
   border-right: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent 25%),
@@ -1015,6 +1124,19 @@ label[for],
   transform: translateX(3px);
 }
 
+.workspace-route .sidebar-section-link.is-active {
+  border-color: color-mix(in oklab, var(--border) 70%, transparent);
+  background: color-mix(in oklab, var(--surface) 92%, transparent);
+  color: var(--foreground);
+}
+
+.workspace-route .sidebar-course-links {
+  margin-top: 1rem;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
 .workspace-route .sidebar-footer {
   margin-top: auto;
   border-top: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
@@ -1289,6 +1411,7 @@ label[for],
 .workspace-route .workspace-canvas-panel {
   position: relative;
   min-width: 0;
+  min-height: 0;
 }
 
 .workspace-route .workspace-canvas {
@@ -1296,7 +1419,7 @@ label[for],
   --cursor-y: 50%;
   position: relative;
   height: 100%;
-  min-height: 46rem;
+  min-height: 0;
   overflow: hidden;
   background:
     radial-gradient(circle at center, rgba(166, 146, 105, 0.22) 0 1.15px, transparent 1.35px),
@@ -2384,6 +2507,15 @@ label[for],
     gap: 1rem;
     border-right: 0;
     border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+
+  .workspace-route .course-library-page {
+    padding: 1rem;
+  }
+
+  .workspace-route .course-library-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .workspace-route .sidebar-course-card,

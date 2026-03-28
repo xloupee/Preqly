@@ -8,7 +8,9 @@ import { BookOpenText, ChevronLeft, FolderKanban, Settings } from "lucide-react"
 
 import { BrandLogo } from "@/components/brand-logo";
 import { type ClassRecord } from "@/lib/class-record";
+import type { CourseRecord } from "@/lib/course-types";
 import { WorkspaceClassSwitcher } from "@/components/workspace-class-switcher";
+import { WorkspaceCourseSwitcher } from "@/components/workspace-course-switcher";
 
 const sidebarItems = [
   { label: "Courses", href: "/workspace", icon: BookOpenText },
@@ -21,6 +23,8 @@ type WorkspaceShellProps = {
   children: ReactNode;
   classes?: ClassRecord[];
   activeClass?: ClassRecord | null;
+  courses?: CourseRecord[];
+  currentCourse?: CourseRecord | null;
   classesEnabled?: boolean;
   classesMessage?: string | null;
   userEmail?: string | null;
@@ -31,6 +35,8 @@ export function WorkspaceShell({
   children,
   classes,
   activeClass,
+  courses,
+  currentCourse,
   classesEnabled = true,
   classesMessage = null,
   userEmail = null,
@@ -39,6 +45,7 @@ export function WorkspaceShell({
   const [isCollapsed, setIsCollapsed] = useState(false);
   const pathname = usePathname();
   const hasClassWorkspace = classes !== undefined;
+  const hasCourseWorkspace = courses !== undefined;
   const profileLabel = userEmail ?? "Signed in";
   const initials = (userEmail?.[0] ?? "P").toUpperCase();
 
@@ -84,7 +91,12 @@ export function WorkspaceShell({
           })}
         </nav>
 
-        {hasClassWorkspace ? (
+        {hasCourseWorkspace ? (
+          <WorkspaceCourseSwitcher
+            courses={courses}
+            activeCourseSlug={currentCourse?.slug ?? null}
+          />
+        ) : hasClassWorkspace ? (
           <WorkspaceClassSwitcher
             classes={classes}
             activeClassId={activeClass?.id ?? null}

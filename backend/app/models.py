@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
-from typing import Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field, HttpUrl
 
@@ -37,7 +37,7 @@ class FlashcardSchedule(BaseModel):
     interval_days: int = Field(1, ge=1)
     ease_factor: float = Field(2.5, ge=1.3, le=3.0)
     due_at: datetime
-    last_reviewed_at: datetime | None = None
+    last_reviewed_at: Optional[datetime] = None
 
 
 class Flashcard(BaseModel):
@@ -86,7 +86,61 @@ class TestAgentResponse(BaseModel):
     generation_source: str = "gemini"
 
 
-def initialize_schedule(now: datetime | None = None) -> FlashcardSchedule:
+class CourseMapPosition(BaseModel):
+    x: int
+    y: int
+
+
+class CourseMapNode(BaseModel):
+    id: str
+    slug: str
+    label: str
+    summary: str
+    status: Literal["foundation", "ready", "locked", "project"]
+    position: CourseMapPosition
+    duration: str
+    track: str
+    outcomes: list[str]
+
+
+class CourseMapLessonSection(BaseModel):
+    title: str
+    body: str
+
+
+class CourseMapLesson(BaseModel):
+    slug: str
+    headline: str
+    intro: str
+    sections: list[CourseMapLessonSection]
+    takeaways: list[str]
+    relatedSlugs: list[str]
+
+
+class CourseMapEdge(BaseModel):
+    id: str
+    source: str
+    target: str
+    label: Optional[str] = None
+
+
+class CourseRecord(BaseModel):
+    slug: str
+    title: str
+    summary: str
+    source: Literal["seed", "uploaded"] = "uploaded"
+    syllabusFileName: Optional[str] = None
+    createdAt: str
+    nodes: list[CourseMapNode]
+    edges: list[CourseMapEdge]
+    lessons: list[CourseMapLesson]
+
+
+class CourseUploadResponse(BaseModel):
+    course: CourseRecord
+
+
+def initialize_schedule(now: Optional[datetime] = None) -> FlashcardSchedule:
     current_time = now or datetime.now(timezone.utc)
     return FlashcardSchedule(
         due_at=current_time + timedelta(days=1),
