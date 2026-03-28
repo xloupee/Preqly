@@ -1,0 +1,2 @@
+-- Initial migration placeholder.
+-- Add tables, policies, and functions here as the project schema becomes defined.

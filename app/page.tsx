@@ -1,12 +1,35 @@
 import { ArrowDownRight, Compass, Sparkles } from "lucide-react";
 
+import { AuthPanel } from "@/components/auth/auth-panel";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 import { SyllabusUpload } from "@/components/syllabus-upload";
-import { WaitlistForm } from "@/components/waitlist-form";
 
 const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
 
-export default function Home() {
+type HomeProps = {
+  searchParams?: Promise<{
+    auth?: string;
+  }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const authStatus = params?.auth ?? null;
+  let userEmail: string | null = null;
+
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    const supabase = await createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    userEmail = user?.email ?? null;
+  }
+
   return (
     <main className="landing-page">
       <div className="ambient ambient-left" />
@@ -72,14 +95,13 @@ export default function Home() {
       <section className="waitlist-section" id="waitlist">
         <div className="waitlist-copy">
           <p className="section-kicker">Early access</p>
-          <h2>Bring structure to lectures before students fall behind.</h2>
+          <h2>Create your Preqly account and keep the workspace within reach.</h2>
           <p>
-            Start with a focused beta waitlist while the product surface is still
-            lean. Use the landing page for onboarding, then move directly into the
-            interactive workspace when you want to explore the course map.
+            Sign up or log in from the landing page, then move into the workspace
+            when you want to explore the course map and syllabus upload flow.
           </p>
         </div>
-        <WaitlistForm />
+        <AuthPanel authStatus={authStatus} userEmail={userEmail} />
       </section>
     </main>
   );

@@ -318,6 +318,82 @@ input {
   line-height: 1.55;
 }
 
+.landing-page .auth-shell {
+  border: 1px solid color-mix(in oklab, var(--foreground) 8%, transparent);
+  border-radius: 2rem;
+  background:
+    linear-gradient(180deg, color-mix(in oklab, white 68%, transparent), color-mix(in oklab, var(--surface) 82%, transparent)),
+    color-mix(in oklab, white 38%, transparent);
+  padding: clamp(1.4rem, 3vw, 2rem);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.7),
+    0 30px 60px -42px var(--shadow);
+}
+
+.landing-page .auth-toggle {
+  display: inline-grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, white 45%, transparent);
+  padding: 0.3rem;
+}
+
+.landing-page .auth-toggle-button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.7rem 1rem;
+  color: var(--foreground-soft);
+  cursor: pointer;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.landing-page .auth-toggle-button.is-active {
+  background: var(--accent-strong);
+  color: var(--accent-foreground);
+}
+
+.landing-page .auth-fields {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.landing-page .auth-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin: 0 0 1rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, white 62%, transparent);
+  padding: 0.5rem 0.8rem;
+  color: var(--foreground-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.landing-page .auth-title {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.05;
+}
+
+.landing-page .auth-message {
+  margin: 0.9rem 0 0;
+  color: var(--foreground-soft);
+  line-height: 1.7;
+}
+
+.landing-page .auth-signout {
+  margin-top: 1.2rem;
+}
+
 .workspace-route {
   --background: oklch(0.16 0.01 80);
   --background-raised: oklch(0.2 0.013 80);
