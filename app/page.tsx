@@ -12,10 +12,6 @@ export default function Home() {
 
       <section className="hero">
         <div className="hero-copy">
-          <p className="eyebrow">
-            <BrandLogo size={18} className="inline-brand-logo" />
-            Live lecture intelligence
-          </p>
           <h1 className="wordmark">preqly</h1>
           <p className="tagline">Real-time knowledge graphs for every lecture</p>
           <p className="supporting-copy">

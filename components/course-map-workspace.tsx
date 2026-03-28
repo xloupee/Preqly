@@ -6,8 +6,10 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowUpRight,
   Database,
+  LoaderCircle,
   Minus,
   Plus,
+  RotateCcw,
   Search,
 } from "lucide-react";
 import ReactFlow, {
@@ -28,6 +30,7 @@ import "reactflow/dist/style.css";
 
 import { Button } from "@/components/ui/button";
 import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
+import type { MapLayoutPositions } from "@/lib/map-layouts";
 
 type GraphNodeData = CourseMapNode & {
   active: boolean;
@@ -162,6 +165,15 @@ const edgeTypes = {
   course: AnimatedCourseEdge,
 };
 
+type CourseMapWorkspaceProps = {
+  mapKey: string | null;
+  initialLayoutPositions?: MapLayoutPositions;
+  layoutPersistenceEnabled?: boolean;
+  layoutMessage?: string | null;
+};
+
+type SaveState = "idle" | "saving" | "saved" | "error";
+
 function collectAdjacentNodeIds(selectedId: string | null) {
   const upstream = new Set<string>();
   const downstream = new Set<string>();
@@ -182,21 +194,23 @@ function collectAdjacentNodeIds(selectedId: string | null) {
   return { upstream, downstream };
 }
 
-const initialNodes: Node<GraphNodeData>[] = courseMapNodes.map((node) => ({
-  id: node.id,
-  type: "course",
-  draggable: true,
-  selectable: true,
-  position: node.position,
-  data: {
-    ...node,
-    active: node.id === "foundation",
-    connected: false,
-    dimmed: false,
-    matched: false,
-    relation: "default",
-  },
-}));
+function buildInitialNodes(initialLayoutPositions: MapLayoutPositions = {}): Node<GraphNodeData>[] {
+  return courseMapNodes.map((node) => ({
+    id: node.id,
+    type: "course",
+    draggable: true,
+    selectable: true,
+    position: initialLayoutPositions[node.id] ?? node.position,
+    data: {
+      ...node,
+      active: node.id === "foundation",
+      connected: false,
+      dimmed: false,
+      matched: false,
+      relation: "default",
+    },
+  }));
+}
 
 function pickHandles(source: { x: number; y: number }, target: { x: number; y: number }) {
   const dx = target.x - source.x;
@@ -215,18 +229,77 @@ function pickHandles(source: { x: number; y: number }, target: { x: number; y: n
   return { sourceHandle: "left-source", targetHandle: "right-target" };
 }
 
-function MapCanvas() {
+function buildPositionSnapshot(nodes: Node<GraphNodeData>[]) {
+  return JSON.stringify(
+    nodes
+      .map((node) => ({
+        id: node.id,
+        x: Number(node.position.x.toFixed(2)),
+        y: Number(node.position.y.toFixed(2)),
+      }))
+      .sort((left, right) => left.id.localeCompare(right.id)),
+  );
+}
+
+function buildPositionsRecord(nodes: Node<GraphNodeData>[]): MapLayoutPositions {
+  return Object.fromEntries(
+    nodes.map((node) => [node.id, { x: node.position.x, y: node.position.y }]),
+  );
+}
+
+function getDefaultPositions(): MapLayoutPositions {
+  return Object.fromEntries(courseMapNodes.map((node) => [node.id, { ...node.position }]));
+}
+
+function MapCanvas({
+  mapKey,
+  initialLayoutPositions = {},
+  layoutPersistenceEnabled = true,
+  layoutMessage = null,
+}: CourseMapWorkspaceProps) {
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [selectedId, setSelectedId] = useState<string>("foundation");
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
-  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(initialNodes);
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveMessage, setSaveMessage] = useState<string | null>(layoutPersistenceEnabled ? null : layoutMessage);
+  const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(
+    buildInitialNodes(initialLayoutPositions),
+  );
   const deferredQuery = useDeferredValue(query);
+  const hasHydratedRef = useRef(false);
+  const lastPersistedSnapshotRef = useRef("");
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const connectedIds = useMemo(() => collectConnectedNodeIds(selectedId), [selectedId]);
   const adjacentIds = useMemo(() => collectAdjacentNodeIds(selectedId), [selectedId]);
+  const positionSnapshot = useMemo(() => buildPositionSnapshot(nodes), [nodes]);
+
+  useEffect(() => {
+    const nextNodes = buildInitialNodes(initialLayoutPositions);
+    const nextSnapshot = buildPositionSnapshot(nextNodes);
+
+    setNodes(nextNodes);
+    setSelectedId("foundation");
+    lastPersistedSnapshotRef.current = nextSnapshot;
+    hasHydratedRef.current = true;
+    setSaveState("idle");
+    setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
+  }, [initialLayoutPositions, layoutMessage, layoutPersistenceEnabled, mapKey, setNodes]);
+
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const matchedIds = useMemo(() => {
     if (!normalizedQuery) {
@@ -242,6 +315,70 @@ function MapCanvas() {
         .map((node) => node.id),
     );
   }, [normalizedQuery]);
+
+  useEffect(() => {
+    if (!hasHydratedRef.current) {
+      lastPersistedSnapshotRef.current = positionSnapshot;
+      hasHydratedRef.current = true;
+      return;
+    }
+
+    if (!layoutPersistenceEnabled || !mapKey) {
+      return;
+    }
+
+    if (positionSnapshot === lastPersistedSnapshotRef.current) {
+      return;
+    }
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+    }
+
+    setSaveState("saving");
+    setSaveMessage(null);
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      const currentNodes = nodes;
+
+      try {
+        const response = await fetch("/api/layouts", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            mapKey,
+            positions: buildPositionsRecord(currentNodes),
+          }),
+        });
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+          throw new Error(payload?.error || "We could not save your layout.");
+        }
+
+        lastPersistedSnapshotRef.current = buildPositionSnapshot(currentNodes);
+        setSaveState("saved");
+        setSaveMessage(null);
+        resetTimeoutRef.current = setTimeout(() => {
+          setSaveState("idle");
+        }, 1400);
+      } catch (error) {
+        setSaveState("error");
+        setSaveMessage(error instanceof Error ? error.message : "We could not save your layout.");
+      }
+    }, 520);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [layoutPersistenceEnabled, mapKey, nodes, positionSnapshot]);
 
   useEffect(() => {
     if (!normalizedQuery || matchedIds.size === 0) {
@@ -390,6 +527,48 @@ function MapCanvas() {
     setIsPointerInside(false);
   };
 
+  const handleResetLayout = async () => {
+    const defaultPositions = getDefaultPositions();
+    const resetNodes = buildInitialNodes(defaultPositions);
+    const resetSnapshot = buildPositionSnapshot(resetNodes);
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        position: defaultPositions[node.id] ?? node.position,
+      })),
+    );
+    lastPersistedSnapshotRef.current = resetSnapshot;
+
+    if (!layoutPersistenceEnabled || !mapKey) {
+      setSaveState("idle");
+      setSaveMessage(layoutMessage);
+      return;
+    }
+
+    try {
+      setSaveState("saving");
+      setSaveMessage(null);
+
+      const response = await fetch(`/api/layouts?mapKey=${encodeURIComponent(mapKey)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "We could not reset your layout.");
+      }
+
+      setSaveState("saved");
+      resetTimeoutRef.current = setTimeout(() => {
+        setSaveState("idle");
+      }, 1400);
+    } catch (error) {
+      setSaveState("error");
+      setSaveMessage(error instanceof Error ? error.message : "We could not reset your layout.");
+    }
+  };
+
   return (
     <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
       <div
@@ -425,6 +604,15 @@ function MapCanvas() {
               aria-label="Search map nodes"
             />
           </label>
+          <button
+            type="button"
+            className="graph-control-button graph-control-reset"
+            onClick={handleResetLayout}
+            aria-label="Reset layout"
+          >
+            <RotateCcw aria-hidden="true" />
+            <span>Reset layout</span>
+          </button>
         </div>
 
         <ReactFlow
@@ -479,17 +667,32 @@ function MapCanvas() {
 
         <div className="canvas-caption">
           <Database aria-hidden="true" />
-          <span>Prerequisite map synced to the current course shell</span>
+          <span>
+            {saveState === "saving" ? (
+              <>
+                <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                Saving layout
+              </>
+            ) : saveState === "saved" ? (
+              "Layout saved"
+            ) : saveState === "error" ? (
+              saveMessage ?? "Layout save failed"
+            ) : layoutPersistenceEnabled ? (
+              "Drag nodes to shape your map"
+            ) : (
+              layoutMessage ?? "Saved layouts are not available yet"
+            )}
+          </span>
         </div>
       </div>
     </section>
   );
 }
 
-export function CourseMapWorkspace() {
+export function CourseMapWorkspace(props: CourseMapWorkspaceProps) {
   return (
     <ReactFlowProvider>
-      <MapCanvas />
+      <MapCanvas {...props} />
     </ReactFlowProvider>
   );
 }
