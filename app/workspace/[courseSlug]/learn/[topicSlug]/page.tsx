@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { CourseMapMinimap } from "@/components/course-map-minimap";
-import { TopicFlashcards } from "@/components/topic-flashcards";
 import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -86,8 +85,6 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
                 <p className="learn-page-headline">{lesson.headline}</p>
                 <p className="learn-page-intro">{lesson.intro}</p>
               </header>
-
-              <TopicFlashcards topicName={node.label} />
 
               <div className="learn-page-grid">
                 <article className="learn-content-card">
