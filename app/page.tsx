@@ -1,9 +1,8 @@
-import { ArrowDownRight, Compass, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 import { AuthPanel } from "@/components/auth/auth-panel";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import { SyllabusUpload } from "@/components/syllabus-upload";
 
 const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
 
@@ -51,17 +50,10 @@ export default async function Home({ searchParams }: HomeProps) {
           <div className="hero-actions">
             <Button asChild size="lg">
               <a href="/workspace">
-                Open Workspace
-                <Compass aria-hidden="true" />
+                Get Started
+                <ArrowRight aria-hidden="true" />
               </a>
             </Button>
-            <Button asChild size="lg" variant="secondary">
-              <a href="#waitlist">
-                Join Beta
-                <ArrowDownRight aria-hidden="true" />
-              </a>
-            </Button>
-            <SyllabusUpload />
           </div>
         </div>
 
