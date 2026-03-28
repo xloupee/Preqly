@@ -12,14 +12,13 @@ import {
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
-  getSmoothStepPath,
   Handle,
+  MarkerType,
   Position,
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
   type Edge,
-  type EdgeProps,
   type Node,
   type NodeProps,
 } from "reactflow";
@@ -27,7 +26,12 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import { Button } from "@/components/ui/button";
-import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
+import { WorkspaceShell } from "@/components/workspace-shell";
+import type {
+  CourseMapEdge,
+  CourseMapNode,
+  CourseRecord,
+} from "@/lib/course-types";
 
 type GraphNodeData = CourseMapNode & {
   active: boolean;
@@ -35,11 +39,6 @@ type GraphNodeData = CourseMapNode & {
   dimmed: boolean;
   matched: boolean;
   relation: "selected" | "prerequisite" | "unlocks" | "connected" | "default";
-};
-
-type GraphEdgeData = {
-  className: string;
-  flowVariant: "none" | "dotted" | "solid";
 };
 
 type HandleId =
@@ -52,7 +51,10 @@ type HandleId =
   | "left-source"
   | "left-target";
 
-function collectConnectedNodeIds(selectedId: string | null) {
+function collectConnectedNodeIds(
+  selectedId: string | null,
+  edges: CourseMapEdge[],
+) {
   if (!selectedId) {
     return new Set<string>();
   }
@@ -62,7 +64,7 @@ function collectConnectedNodeIds(selectedId: string | null) {
 
   while (changed) {
     changed = false;
-    for (const edge of courseMapEdges) {
+    for (const edge of edges) {
       if (connected.has(edge.source) && !connected.has(edge.target)) {
         connected.add(edge.target);
         changed = true;
@@ -106,63 +108,14 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
   );
 }
 
-function AnimatedCourseEdge({
-  id,
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  sourcePosition,
-  targetPosition,
-  markerEnd,
-  style,
-  data,
-}: EdgeProps<GraphEdgeData>) {
-  const [edgePath] = getSmoothStepPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
-    borderRadius: 18,
-  });
-
-  return (
-    <g className={data?.className}>
-      <path
-        id={id}
-        d={edgePath}
-        fill="none"
-        className={
-          data?.flowVariant === "dotted"
-            ? "course-edge-path-base is-flowing-dotted"
-            : "course-edge-path-base"
-        }
-        markerEnd={markerEnd}
-        style={style}
-      />
-      {data?.flowVariant === "solid" ? (
-        <path
-          d={edgePath}
-          fill="none"
-          pathLength={100}
-          className="course-edge-path-flow is-flowing-solid"
-        />
-      ) : null}
-    </g>
-  );
-}
-
 const nodeTypes = {
   course: CourseNode,
 };
 
-const edgeTypes = {
-  course: AnimatedCourseEdge,
-};
-
-function collectAdjacentNodeIds(selectedId: string | null) {
+function collectAdjacentNodeIds(
+  selectedId: string | null,
+  edges: CourseMapEdge[],
+) {
   const upstream = new Set<string>();
   const downstream = new Set<string>();
 
@@ -170,7 +123,7 @@ function collectAdjacentNodeIds(selectedId: string | null) {
     return { upstream, downstream };
   }
 
-  for (const edge of courseMapEdges) {
+  for (const edge of edges) {
     if (edge.target === selectedId) {
       upstream.add(edge.source);
     }
@@ -181,22 +134,6 @@ function collectAdjacentNodeIds(selectedId: string | null) {
 
   return { upstream, downstream };
 }
-
-const initialNodes: Node<GraphNodeData>[] = courseMapNodes.map((node) => ({
-  id: node.id,
-  type: "course",
-  draggable: true,
-  selectable: true,
-  position: node.position,
-  data: {
-    ...node,
-    active: node.id === "foundation",
-    connected: false,
-    dimmed: false,
-    matched: false,
-    relation: "default",
-  },
-}));
 
 function pickHandles(source: { x: number; y: number }, target: { x: number; y: number }) {
   const dx = target.x - source.x;
@@ -215,18 +152,68 @@ function pickHandles(source: { x: number; y: number }, target: { x: number; y: n
   return { sourceHandle: "left-source", targetHandle: "right-target" };
 }
 
-function MapCanvas() {
+function getInitialNodes(course: CourseRecord) {
+  const defaultSelectedId =
+    course.nodes.find((node) => node.status === "foundation")?.id ??
+    course.nodes[0]?.id ??
+    "";
+
+  const nodes: Node<GraphNodeData>[] = course.nodes.map((node) => ({
+    id: node.id,
+    type: "course",
+    draggable: true,
+    selectable: true,
+    position: node.position,
+    data: {
+      ...node,
+      active: node.id === defaultSelectedId,
+      connected: false,
+      dimmed: false,
+      matched: false,
+      relation: "default",
+    },
+  }));
+
+  return { defaultSelectedId, nodes };
+}
+
+function MapCanvas({
+  course,
+  courses,
+  userEmail,
+}: {
+  course: CourseRecord;
+  courses: CourseRecord[];
+  userEmail?: string | null;
+}) {
+  const { defaultSelectedId, nodes: initialNodes } = useMemo(
+    () => getInitialNodes(course),
+    [course],
+  );
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
-  const [selectedId, setSelectedId] = useState<string>("foundation");
+  const [selectedId, setSelectedId] = useState<string>(defaultSelectedId);
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(initialNodes);
   const deferredQuery = useDeferredValue(query);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
-  const connectedIds = useMemo(() => collectConnectedNodeIds(selectedId), [selectedId]);
-  const adjacentIds = useMemo(() => collectAdjacentNodeIds(selectedId), [selectedId]);
+  const connectedIds = useMemo(
+    () => collectConnectedNodeIds(selectedId, course.edges),
+    [course.edges, selectedId],
+  );
+  const adjacentIds = useMemo(
+    () => collectAdjacentNodeIds(selectedId, course.edges),
+    [course.edges, selectedId],
+  );
+
+  useEffect(() => {
+    const nextLayout = getInitialNodes(course);
+    setSelectedId(nextLayout.defaultSelectedId);
+    setNodes(nextLayout.nodes);
+    setQuery("");
+  }, [course, setNodes]);
 
   const matchedIds = useMemo(() => {
     if (!normalizedQuery) {
@@ -234,21 +221,21 @@ function MapCanvas() {
     }
 
     return new Set(
-      courseMapNodes
+      course.nodes
         .filter((node) => {
           const haystack = [node.label, node.summary, node.track].join(" ").toLowerCase();
           return haystack.includes(normalizedQuery);
         })
         .map((node) => node.id),
     );
-  }, [normalizedQuery]);
+  }, [course.nodes, normalizedQuery]);
 
   useEffect(() => {
     if (!normalizedQuery || matchedIds.size === 0) {
       return;
     }
 
-    const firstMatch = courseMapNodes.find((node) => matchedIds.has(node.id));
+    const firstMatch = course.nodes.find((node) => matchedIds.has(node.id));
     if (!firstMatch) {
       return;
     }
@@ -261,12 +248,13 @@ function MapCanvas() {
       zoom: 0.92,
     });
     setSelectedId(firstMatch.id);
-  }, [graphApi, matchedIds, nodes, normalizedQuery]);
+  }, [course.nodes, graphApi, matchedIds, nodes, normalizedQuery]);
 
   useEffect(() => {
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const source = courseMapNodes.find((courseNode) => courseNode.id === node.id);
+        const source =
+          course.nodes.find((courseNode) => courseNode.id === node.id);
         if (!source) {
           return node;
         }
@@ -298,15 +286,23 @@ function MapCanvas() {
         };
       }),
     );
-  }, [adjacentIds.downstream, adjacentIds.upstream, connectedIds, matchedIds, selectedId, setNodes]);
+  }, [
+    adjacentIds.downstream,
+    adjacentIds.upstream,
+    connectedIds,
+    course.nodes,
+    matchedIds,
+    selectedId,
+    setNodes,
+  ]);
 
   const nodeLookup = useMemo(
     () => Object.fromEntries(nodes.map((node) => [node.id, node])),
     [nodes],
   );
 
-  const edges = useMemo<Edge<GraphEdgeData>[]>(() => {
-    return courseMapEdges.map((edge) => {
+  const edges = useMemo<Edge[]>(() => {
+    return course.edges.map((edge) => {
       const sourceNode = nodeLookup[edge.source];
       const targetNode = nodeLookup[edge.target];
       const active = selectedId
@@ -327,21 +323,10 @@ function MapCanvas() {
       return {
         ...edge,
         animated: false,
-        type: "course",
+        type: "smoothstep",
         sourceHandle,
         targetHandle,
-        data: {
-          className: [
-            "course-edge",
-            "is-visible",
-            active || emphasizedBySearch ? "is-active" : "",
-            directlyUpstream ? "is-upstream" : "",
-            directlyDownstream ? "is-downstream" : "",
-          ]
-            .filter(Boolean)
-            .join(" "),
-          flowVariant: directlyDownstream ? "solid" : directlyUpstream ? "dotted" : "none",
-        },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
         style: {
           stroke:
             directlyConnected || emphasizedBySearch
@@ -349,17 +334,18 @@ function MapCanvas() {
               : active
                 ? "rgba(122, 103, 71, 0.66)"
                 : "rgba(122, 103, 71, 0.44)",
-          strokeWidth:
-            directlyDownstream ? 3.35 : directlyUpstream ? 3.05 : active || emphasizedBySearch ? 2.4 : 2,
-          strokeDasharray:
-            directlyDownstream
-              ? undefined
-              : directlyUpstream
-                ? "7 11"
-                : active || emphasizedBySearch
-                  ? "5 9"
-                  : "4 8",
+          strokeWidth: directlyConnected ? 3.2 : active || emphasizedBySearch ? 2.4 : 2,
+          strokeDasharray: directlyConnected ? undefined : active || emphasizedBySearch ? "5 9" : "4 8",
         },
+        className: [
+          "course-edge",
+          "is-visible",
+          active || emphasizedBySearch ? "is-active" : "",
+          directlyUpstream ? "is-upstream" : "",
+          directlyDownstream ? "is-downstream" : "",
+        ]
+          .filter(Boolean)
+          .join(" "),
         labelStyle: {
           fill: "rgba(122, 103, 71, 0.65)",
           fontSize: 11,
@@ -367,9 +353,10 @@ function MapCanvas() {
         },
       };
     });
-  }, [connectedIds, matchedIds, nodeLookup, selectedId]);
+  }, [connectedIds, course.edges, matchedIds, nodeLookup, selectedId]);
 
-  const selectedNode = courseMapNodes.find((node) => node.id === selectedId) ?? courseMapNodes[0];
+  const selectedNode =
+    course.nodes.find((node) => node.id === selectedId) ?? course.nodes[0];
 
   const handleCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const canvas = canvasRef.current;
@@ -391,105 +378,116 @@ function MapCanvas() {
   };
 
   return (
-    <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
-      <div
-        ref={canvasRef}
-        className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
-        onPointerMove={handleCanvasPointerMove}
-        onPointerLeave={handleCanvasPointerLeave}
-      >
-        <div className="graph-controls-panel">
-          <button
-            type="button"
-            className="graph-control-button"
-            aria-label="Zoom in"
-            onClick={() => graphApi.zoomIn({ duration: 250 })}
-          >
-            <Plus aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="graph-control-button"
-            aria-label="Zoom out"
-            onClick={() => graphApi.zoomOut({ duration: 250 })}
-          >
-            <Minus aria-hidden="true" />
-          </button>
-          <label className="graph-search">
-            <Search aria-hidden="true" />
-            <input
-              type="search"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search topics"
-              aria-label="Search map nodes"
-            />
-          </label>
+    <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+      <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
+        <div
+          ref={canvasRef}
+          className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
+          onPointerMove={handleCanvasPointerMove}
+          onPointerLeave={handleCanvasPointerLeave}
+        >
+          <div className="graph-controls-panel">
+            <button
+              type="button"
+              className="graph-control-button"
+              aria-label="Zoom in"
+              onClick={() => graphApi.zoomIn({ duration: 250 })}
+            >
+              <Plus aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="graph-control-button"
+              aria-label="Zoom out"
+              onClick={() => graphApi.zoomOut({ duration: 250 })}
+            >
+              <Minus aria-hidden="true" />
+            </button>
+            <label className="graph-search">
+              <Search aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search topics"
+                aria-label="Search map nodes"
+              />
+            </label>
+          </div>
+
+          <ReactFlow
+            fitView
+            fitViewOptions={{ padding: 0.2, minZoom: 0.72 }}
+            minZoom={0.62}
+            maxZoom={1.5}
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            nodesConnectable={false}
+            proOptions={{ hideAttribution: true }}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            onNodesChange={onNodesChange}
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              style: { strokeLinecap: "round" },
+            }}
+            onNodeClick={(_, node) => setSelectedId(node.id)}
+          />
+
+          <aside className="node-detail-card" aria-live="polite">
+            <p className="node-detail-kicker">{selectedNode.track}</p>
+            <div className="node-detail-heading">
+              <h2>{selectedNode.label}</h2>
+              <span>{selectedNode.duration}</span>
+            </div>
+            <p className="node-detail-summary">{selectedNode.summary}</p>
+            <div className="node-detail-meta">
+              <span className={`node-status-chip status-${selectedNode.status}`}>
+                {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
+              </span>
+              <span className="node-status-chip node-status-chip-muted">
+                {connectedIds.size} linked topics
+              </span>
+            </div>
+            <div className="node-outcomes">
+              {selectedNode.outcomes.map((outcome) => (
+                <div key={outcome} className="node-outcome-item">
+                  <ArrowUpRight aria-hidden="true" />
+                  <span>{outcome}</span>
+                </div>
+              ))}
+            </div>
+            <div className="node-detail-actions">
+              <Button asChild size="sm">
+                <Link href={`/workspace/${course.slug}/learn/${selectedNode.slug}`}>
+                  Learn
+                </Link>
+              </Button>
+            </div>
+          </aside>
+
+          <div className="canvas-caption">
+            <Database aria-hidden="true" />
+            <span>Prerequisite map synced to the current course shell</span>
+          </div>
         </div>
-
-        <ReactFlow
-          fitView
-          fitViewOptions={{ padding: 0.28, minZoom: 0.34 }}
-          minZoom={0.22}
-          maxZoom={1.5}
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodesConnectable={false}
-          proOptions={{ hideAttribution: true }}
-          connectionLineType={ConnectionLineType.SmoothStep}
-          onNodesChange={onNodesChange}
-          defaultEdgeOptions={{
-            type: "smoothstep",
-            style: { strokeLinecap: "round" },
-          }}
-          onNodeClick={(_, node) => setSelectedId(node.id)}
-        />
-
-        <aside className="node-detail-card" aria-live="polite">
-          <p className="node-detail-kicker">{selectedNode.track}</p>
-          <div className="node-detail-heading">
-            <h2>{selectedNode.label}</h2>
-            <span>{selectedNode.duration}</span>
-          </div>
-          <p className="node-detail-summary">{selectedNode.summary}</p>
-          <div className="node-detail-meta">
-            <span className={`node-status-chip status-${selectedNode.status}`}>
-              {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
-            </span>
-            <span className="node-status-chip node-status-chip-muted">
-              {connectedIds.size} linked topics
-            </span>
-          </div>
-          <div className="node-outcomes">
-            {selectedNode.outcomes.map((outcome) => (
-              <div key={outcome} className="node-outcome-item">
-                <ArrowUpRight aria-hidden="true" />
-                <span>{outcome}</span>
-              </div>
-            ))}
-          </div>
-          <div className="node-detail-actions">
-            <Button asChild size="sm">
-              <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
-            </Button>
-          </div>
-        </aside>
-
-        <div className="canvas-caption">
-          <Database aria-hidden="true" />
-          <span>Prerequisite map synced to the current course shell</span>
-        </div>
-      </div>
-    </section>
+      </section>
+    </WorkspaceShell>
   );
 }
 
-export function CourseMapWorkspace() {
+export function CourseMapWorkspace({
+  course,
+  courses,
+  userEmail,
+}: {
+  course: CourseRecord;
+  courses: CourseRecord[];
+  userEmail?: string | null;
+}) {
   return (
     <ReactFlowProvider>
-      <MapCanvas />
+      <MapCanvas course={course} courses={courses} userEmail={userEmail} />
     </ReactFlowProvider>
   );
 }

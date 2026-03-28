@@ -1,0 +1,1002 @@
+[
+  {
+    "slug": "test-1",
+    "title": "Test 1",
+    "summary": "This course delves into advanced data structures and algorithmic techniques, exploring topics from efficient string matching and balanced trees to amortized analysis, randomized data structures, and specialized integer and graph structures. Students will learn to analyze and design data structures for optimal performance in various computational scenarios.",
+    "source": "uploaded",
+    "syllabusFileName": "010 Syllabus.pdf",
+    "createdAt": "2026-03-28T19:49:52.892260+00:00",
+    "nodes": [
+      {
+        "id": "topic-1",
+        "slug": "intro-data-structures",
+        "label": "Intro to Data Structures & RMQ",
+        "summary": "Introduces the fundamental importance of data structures, covering Range Minimum Queries (RMQ) and the Method of Four Russians for efficient problem-solving.",
+        "status": "foundation",
+        "position": {
+          "x": 470,
+          "y": 90
+        },
+        "duration": "1 week",
+        "track": "Foundation",
+        "outcomes": [
+          "Understand the core motivations for studying advanced data structures.",
+          "Implement and analyze Range Minimum Query solutions.",
+          "Apply the Method of Four Russians for performance optimization.",
+          "Evaluate runtime tradeoffs in data structure design."
+        ]
+      },
+      {
+        "id": "topic-2",
+        "slug": "string-automata-tries",
+        "label": "String Matching with Tries",
+        "summary": "Explores automata theory and its application to string data structures, including Tries and the Aho-Corasick algorithm for efficient pattern matching.",
+        "status": "ready",
+        "position": {
+          "x": 800,
+          "y": 270
+        },
+        "duration": "1 week",
+        "track": "String Algorithms",
+        "outcomes": [
+          "Grasp the principles of automata theory for string processing.",
+          "Design and implement Trie data structures.",
+          "Apply the Aho-Corasick algorithm for multi-pattern string matching.",
+          "Analyze the time and space complexity of Trie-based algorithms."
+        ]
+      },
+      {
+        "id": "topic-3",
+        "slug": "suffix-structures",
+        "label": "Suffix Trees & Arrays",
+        "summary": "Delves into advanced string data structures like Suffix Trees and Suffix Arrays, discussing their construction and applications for complex string algorithms.",
+        "status": "ready",
+        "position": {
+          "x": 910,
+          "y": 450
+        },
+        "duration": "1 week",
+        "track": "String Algorithms",
+        "outcomes": [
+          "Understand the structure and utility of Suffix Trees.",
+          "Learn efficient construction methods for Suffix Arrays.",
+          "Apply suffix structures to solve advanced string problems.",
+          "Compare the performance characteristics of Suffix Trees and Suffix Arrays."
+        ]
+      },
+      {
+        "id": "topic-4",
+        "slug": "balanced-bsts",
+        "label": "Balanced Binary Search Trees",
+        "summary": "Covers the theory and implementation of self-balancing binary search trees, including 2-3-4 Trees and Red/Black Trees, to maintain logarithmic time complexity.",
+        "status": "ready",
+        "position": {
+          "x": 360,
+          "y": 270
+        },
+        "duration": "1 week",
+        "track": "Core Data Structures",
+        "outcomes": [
+          "Explain the need for balanced binary search trees.",
+          "Understand the properties and operations of 2-3-4 Trees.",
+          "Implement and analyze Red/Black Trees.",
+          "Ensure efficient search, insertion, and deletion operations."
+        ]
+      },
+      {
+        "id": "topic-5",
+        "slug": "advanced-bst-ops",
+        "label": "Augmented BSTs & Operations",
+        "summary": "Explores augmenting binary search trees with additional information and advanced operations like tree splits and joins to support more complex queries.",
+        "status": "ready",
+        "position": {
+          "x": 470,
+          "y": 450
+        },
+        "duration": "0.5 week",
+        "track": "Core Data Structures",
+        "outcomes": [
+          "Learn techniques for augmenting BSTs with auxiliary data.",
+          "Implement tree split operations efficiently.",
+          "Perform tree join operations while maintaining balance.",
+          "Solve problems requiring dynamic range queries using augmented BSTs."
+        ]
+      },
+      {
+        "id": "topic-6",
+        "slug": "amortized-analysis",
+        "label": "Amortized Analysis Techniques",
+        "summary": "Introduces amortized analysis as a method to analyze the average performance of a sequence of operations, even if individual operations are expensive. Examples include Two-Stack Queues.",
+        "status": "ready",
+        "position": {
+          "x": 140,
+          "y": 270
+        },
+        "duration": "1 week",
+        "track": "Analysis Techniques",
+        "outcomes": [
+          "Define and apply amortized analysis to data structures.",
+          "Analyze the performance of Two-Stack Queues.",
+          "Understand potential function and accounting methods.",
+          "Identify scenarios where amortized analysis is appropriate."
+        ]
+      },
+      {
+        "id": "topic-7",
+        "slug": "advanced-heaps",
+        "label": "Advanced Heap Structures",
+        "summary": "Investigates sophisticated heap data structures such as Binomial Heaps and Fibonacci Heaps, focusing on their properties and applications in algorithms like Dijkstra's and Prim's.",
+        "status": "ready",
+        "position": {
+          "x": 30,
+          "y": 450
+        },
+        "duration": "1 week",
+        "track": "Core Data Structures",
+        "outcomes": [
+          "Understand the structure and operations of Binomial Heaps.",
+          "Implement lazy operations in Binomial Heaps.",
+          "Analyze the complex properties of Fibonacci Heaps.",
+          "Apply advanced heaps to achieve asymptotically optimal graph algorithms."
+        ]
+      },
+      {
+        "id": "topic-8",
+        "slug": "splay-trees",
+        "label": "Self-Adjusting Splay Trees",
+        "summary": "Focuses on Splay Trees, a self-adjusting binary search tree that moves frequently accessed nodes closer to the root, discussing static and dynamic optimality.",
+        "status": "ready",
+        "position": {
+          "x": 360,
+          "y": 630
+        },
+        "duration": "0.5 week",
+        "track": "Core Data Structures",
+        "outcomes": [
+          "Explain the splaying operation and its purpose.",
+          "Implement Splay Tree operations (insert, delete, search).",
+          "Understand the concepts of static and dynamic optimality.",
+          "Analyze the amortized performance of Splay Trees."
+        ]
+      },
+      {
+        "id": "topic-9",
+        "slug": "hashing-sketches",
+        "label": "Hashing & Count-Min Sketches",
+        "summary": "Explores various hashing techniques, including universal and pairwise-independent hashing, linear probing, Cuckoo Hashing, and probabilistic data structures like Count-Min Sketches.",
+        "status": "ready",
+        "position": {
+          "x": 250,
+          "y": 450
+        },
+        "duration": "1.5 weeks",
+        "track": "Randomized Data Structures",
+        "outcomes": [
+          "Design and analyze universal hashing schemes.",
+          "Implement different collision resolution strategies like linear probing.",
+          "Understand the principles of Cuckoo Hashing for worst-case efficiency.",
+          "Apply Count-Min Sketches for approximate frequency counting."
+        ]
+      },
+      {
+        "id": "topic-10",
+        "slug": "integer-data-structures",
+        "label": "Efficient Integer Data Structures",
+        "summary": "Covers specialized data structures optimized for integer keys, such as i-Fast and y-Fast Tries, and Fusion Trees, leveraging word-level parallelism for exponential speedups.",
+        "status": "ready",
+        "position": {
+          "x": 580,
+          "y": 630
+        },
+        "duration": "1 week",
+        "track": "Specialized Data Structures",
+        "outcomes": [
+          "Understand the design of i-Fast and y-Fast Tries.",
+          "Explore Fusion Trees and their use of word-level parallelism.",
+          "Achieve exponentially faster ordered dictionary operations.",
+          "Apply techniques for optimizing data structures for integer inputs."
+        ]
+      },
+      {
+        "id": "topic-11",
+        "slug": "graph-data-structures",
+        "label": "Disjoint Set & Dynamic Graphs",
+        "summary": "Introduces Disjoint-Set Forests for connectivity problems and explores advanced graph data structures like Euler Tour Trees for dynamic graph problems.",
+        "status": "ready",
+        "position": {
+          "x": 580,
+          "y": 270
+        },
+        "duration": "1 week",
+        "track": "Graph Algorithms",
+        "outcomes": [
+          "Implement Disjoint-Set Forests with path compression and union by rank/size.",
+          "Analyze the amortized complexity of Disjoint-Set operations.",
+          "Understand Euler Tour Trees for dynamic connectivity queries.",
+          "Solve problems involving dynamic updates on graphs."
+        ]
+      },
+      {
+        "id": "topic-12",
+        "slug": "future-ds",
+        "label": "Future Directions in Data Structures",
+        "summary": "A concluding topic discussing emerging trends, open problems, and advanced research areas in data structures, encouraging further exploration.",
+        "status": "project",
+        "position": {
+          "x": 690,
+          "y": 450
+        },
+        "duration": "0.5 week",
+        "track": "Capstone",
+        "outcomes": [
+          "Identify current research frontiers in data structures.",
+          "Discuss the impact of new hardware on data structure design.",
+          "Formulate potential research questions in the field.",
+          "Reflect on the course material and its broader implications."
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1",
+        "source": "topic-1",
+        "target": "topic-2",
+        "label": null
+      },
+      {
+        "id": "edge-2",
+        "source": "topic-2",
+        "target": "topic-3",
+        "label": null
+      },
+      {
+        "id": "edge-3",
+        "source": "topic-1",
+        "target": "topic-4",
+        "label": null
+      },
+      {
+        "id": "edge-4",
+        "source": "topic-4",
+        "target": "topic-5",
+        "label": null
+      },
+      {
+        "id": "edge-5",
+        "source": "topic-1",
+        "target": "topic-6",
+        "label": null
+      },
+      {
+        "id": "edge-6",
+        "source": "topic-6",
+        "target": "topic-7",
+        "label": null
+      },
+      {
+        "id": "edge-7",
+        "source": "topic-5",
+        "target": "topic-8",
+        "label": null
+      },
+      {
+        "id": "edge-8",
+        "source": "topic-6",
+        "target": "topic-9",
+        "label": null
+      },
+      {
+        "id": "edge-9",
+        "source": "topic-2",
+        "target": "topic-10",
+        "label": null
+      },
+      {
+        "id": "edge-10",
+        "source": "topic-9",
+        "target": "topic-10",
+        "label": null
+      },
+      {
+        "id": "edge-11",
+        "source": "topic-1",
+        "target": "topic-11",
+        "label": null
+      },
+      {
+        "id": "edge-12",
+        "source": "topic-11",
+        "target": "topic-12",
+        "label": null
+      }
+    ],
+    "lessons": [
+      {
+        "slug": "intro-data-structures",
+        "headline": "Learn the core ideas behind Intro to Data Structures & RMQ.",
+        "intro": "Introduces the fundamental importance of data structures, covering Range Minimum Queries (RMQ) and the Method of Four Russians for efficient problem-solving.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Introduces the fundamental importance of data structures, covering Range Minimum Queries (RMQ) and the Method of Four Russians for efficient problem-solving."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand the core motivations for studying advanced data structures.",
+          "Implement and analyze Range Minimum Query solutions.",
+          "Apply the Method of Four Russians for performance optimization."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "string-automata-tries",
+        "headline": "Learn the core ideas behind String Matching with Tries.",
+        "intro": "Explores automata theory and its application to string data structures, including Tries and the Aho-Corasick algorithm for efficient pattern matching.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Explores automata theory and its application to string data structures, including Tries and the Aho-Corasick algorithm for efficient pattern matching."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Grasp the principles of automata theory for string processing.",
+          "Design and implement Trie data structures.",
+          "Apply the Aho-Corasick algorithm for multi-pattern string matching."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "suffix-structures",
+        "headline": "Learn the core ideas behind Suffix Trees & Arrays.",
+        "intro": "Delves into advanced string data structures like Suffix Trees and Suffix Arrays, discussing their construction and applications for complex string algorithms.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Delves into advanced string data structures like Suffix Trees and Suffix Arrays, discussing their construction and applications for complex string algorithms."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand the structure and utility of Suffix Trees.",
+          "Learn efficient construction methods for Suffix Arrays.",
+          "Apply suffix structures to solve advanced string problems."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "balanced-bsts",
+        "headline": "Learn the core ideas behind Balanced Binary Search Trees.",
+        "intro": "Covers the theory and implementation of self-balancing binary search trees, including 2-3-4 Trees and Red/Black Trees, to maintain logarithmic time complexity.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Covers the theory and implementation of self-balancing binary search trees, including 2-3-4 Trees and Red/Black Trees, to maintain logarithmic time complexity."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Explain the need for balanced binary search trees.",
+          "Understand the properties and operations of 2-3-4 Trees.",
+          "Implement and analyze Red/Black Trees."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "advanced-bst-ops",
+        "headline": "Learn the core ideas behind Augmented BSTs & Operations.",
+        "intro": "Explores augmenting binary search trees with additional information and advanced operations like tree splits and joins to support more complex queries.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Explores augmenting binary search trees with additional information and advanced operations like tree splits and joins to support more complex queries."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Learn techniques for augmenting BSTs with auxiliary data.",
+          "Implement tree split operations efficiently.",
+          "Perform tree join operations while maintaining balance."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "amortized-analysis",
+        "headline": "Learn the core ideas behind Amortized Analysis Techniques.",
+        "intro": "Introduces amortized analysis as a method to analyze the average performance of a sequence of operations, even if individual operations are expensive. Examples include Two-Stack Queues.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Introduces amortized analysis as a method to analyze the average performance of a sequence of operations, even if individual operations are expensive. Examples include Two-Stack Queues."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Define and apply amortized analysis to data structures.",
+          "Analyze the performance of Two-Stack Queues.",
+          "Understand potential function and accounting methods."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "advanced-heaps",
+        "headline": "Learn the core ideas behind Advanced Heap Structures.",
+        "intro": "Investigates sophisticated heap data structures such as Binomial Heaps and Fibonacci Heaps, focusing on their properties and applications in algorithms like Dijkstra's and Prim's.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Investigates sophisticated heap data structures such as Binomial Heaps and Fibonacci Heaps, focusing on their properties and applications in algorithms like Dijkstra's and Prim's."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand the structure and operations of Binomial Heaps.",
+          "Implement lazy operations in Binomial Heaps.",
+          "Analyze the complex properties of Fibonacci Heaps."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "splay-trees",
+        "headline": "Learn the core ideas behind Self-Adjusting Splay Trees.",
+        "intro": "Focuses on Splay Trees, a self-adjusting binary search tree that moves frequently accessed nodes closer to the root, discussing static and dynamic optimality.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Focuses on Splay Trees, a self-adjusting binary search tree that moves frequently accessed nodes closer to the root, discussing static and dynamic optimality."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Explain the splaying operation and its purpose.",
+          "Implement Splay Tree operations (insert, delete, search).",
+          "Understand the concepts of static and dynamic optimality."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "hashing-sketches",
+        "headline": "Learn the core ideas behind Hashing & Count-Min Sketches.",
+        "intro": "Explores various hashing techniques, including universal and pairwise-independent hashing, linear probing, Cuckoo Hashing, and probabilistic data structures like Count-Min Sketches.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Explores various hashing techniques, including universal and pairwise-independent hashing, linear probing, Cuckoo Hashing, and probabilistic data structures like Count-Min Sketches."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Design and analyze universal hashing schemes.",
+          "Implement different collision resolution strategies like linear probing.",
+          "Understand the principles of Cuckoo Hashing for worst-case efficiency."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "integer-data-structures",
+        "headline": "Learn the core ideas behind Efficient Integer Data Structures.",
+        "intro": "Covers specialized data structures optimized for integer keys, such as i-Fast and y-Fast Tries, and Fusion Trees, leveraging word-level parallelism for exponential speedups.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Covers specialized data structures optimized for integer keys, such as i-Fast and y-Fast Tries, and Fusion Trees, leveraging word-level parallelism for exponential speedups."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand the design of i-Fast and y-Fast Tries.",
+          "Explore Fusion Trees and their use of word-level parallelism.",
+          "Achieve exponentially faster ordered dictionary operations."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "graph-data-structures",
+        "headline": "Learn the core ideas behind Disjoint Set & Dynamic Graphs.",
+        "intro": "Introduces Disjoint-Set Forests for connectivity problems and explores advanced graph data structures like Euler Tour Trees for dynamic graph problems.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Introduces Disjoint-Set Forests for connectivity problems and explores advanced graph data structures like Euler Tour Trees for dynamic graph problems."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Implement Disjoint-Set Forests with path compression and union by rank/size.",
+          "Analyze the amortized complexity of Disjoint-Set operations.",
+          "Understand Euler Tour Trees for dynamic connectivity queries."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "future-ds",
+        "headline": "Learn the core ideas behind Future Directions in Data Structures.",
+        "intro": "A concluding topic discussing emerging trends, open problems, and advanced research areas in data structures, encouraging further exploration.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "A concluding topic discussing emerging trends, open problems, and advanced research areas in data structures, encouraging further exploration."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Identify current research frontiers in data structures.",
+          "Discuss the impact of new hardware on data structure design.",
+          "Formulate potential research questions in the field."
+        ],
+        "relatedSlugs": []
+      }
+    ]
+  },
+  {
+    "slug": "tes-2",
+    "title": "Tes 2",
+    "summary": "An introduction to the intellectual enterprises of computer science and the art of programming, teaching students how to think algorithmically and solve problems efficiently. This course covers abstraction, algorithms, data structures, encapsulation, resource management, security, software engineering, and web development using languages like C, PHP, JavaScript, SQL, CSS, and HTML. Designed for all levels, with problem sets inspired by real-world domains.",
+    "source": "uploaded",
+    "syllabusFileName": "syllabus-cs50-1abg0vk.pdf",
+    "createdAt": "2026-03-28T19:51:03.008492+00:00",
+    "nodes": [
+      {
+        "id": "topic-1",
+        "slug": "computational-thinking-scratch",
+        "label": "Computational Thinking & Scratch",
+        "summary": "Explore fundamental computer science concepts like algorithms, binary, and pseudocode using Scratch, a visual programming language.",
+        "status": "foundation",
+        "position": {
+          "x": 470,
+          "y": 90
+        },
+        "duration": "1 week",
+        "track": "Foundations",
+        "outcomes": [
+          "Understand algorithmic thinking and problem-solving.",
+          "Write basic programs with conditions and loops.",
+          "Represent data in binary and ASCII.",
+          "Use Scratch to solve simple computational problems."
+        ]
+      },
+      {
+        "id": "topic-2",
+        "slug": "intro-c-programming",
+        "label": "Introduction to C Programming",
+        "summary": "Learn the basics of the C programming language, including compilation, standard I/O, and working within a Linux environment.",
+        "status": "ready",
+        "position": {
+          "x": 470,
+          "y": 270
+        },
+        "duration": "1 week",
+        "track": "Programming",
+        "outcomes": [
+          "Set up a C development environment.",
+          "Compile and run basic C programs.",
+          "Use fundamental C data types and print output.",
+          "Understand the role of libraries in C programming."
+        ]
+      },
+      {
+        "id": "topic-3",
+        "slug": "c-control-flow-arrays",
+        "label": "C Control Flow & Arrays",
+        "summary": "Deepen C programming skills with control structures like switches, understand variable scope, and work with strings and arrays.",
+        "status": "ready",
+        "position": {
+          "x": 470,
+          "y": 450
+        },
+        "duration": "1 week",
+        "track": "Programming",
+        "outcomes": [
+          "Implement conditional logic with 'switch' statements.",
+          "Manage variable scope effectively within C programs.",
+          "Work with strings and character arrays.",
+          "Process command-line arguments in C applications."
+        ]
+      },
+      {
+        "id": "topic-4",
+        "slug": "algorithms-efficiency",
+        "label": "Algorithms & Efficiency",
+        "summary": "Study common searching and sorting algorithms, analyze their efficiency using Big O notation, and learn debugging techniques.",
+        "status": "ready",
+        "position": {
+          "x": 250,
+          "y": 630
+        },
+        "duration": "2 weeks",
+        "track": "Algorithms",
+        "outcomes": [
+          "Implement various search and sort algorithms (e.g., Bubble, Merge).",
+          "Analyze algorithm runtime complexity using Big O, Omega, and Theta notations.",
+          "Develop effective debugging strategies for C programs.",
+          "Understand basic security principles in software design."
+        ]
+      },
+      {
+        "id": "topic-5",
+        "slug": "pointers-memory",
+        "label": "Pointers & Dynamic Memory",
+        "summary": "Master pointers, dynamic memory allocation, and understand the stack and heap, crucial for advanced C programming.",
+        "status": "ready",
+        "position": {
+          "x": 470,
+          "y": 630
+        },
+        "duration": "2 weeks",
+        "track": "Programming",
+        "outcomes": [
+          "Use pointers to manipulate memory directly.",
+          "Allocate and deallocate memory dynamically using malloc and free.",
+          "Differentiate between stack and heap memory regions.",
+          "Understand the full compilation process (pre-processing, compiling, assembling, linking)."
+        ]
+      },
+      {
+        "id": "topic-6",
+        "slug": "core-data-structures",
+        "label": "Core Data Structures",
+        "summary": "Explore fundamental data structures like linked lists, hash tables, tries, stacks, queues, and trees for efficient data organization.",
+        "status": "ready",
+        "position": {
+          "x": 360,
+          "y": 810
+        },
+        "duration": "2 weeks",
+        "track": "Data Structures",
+        "outcomes": [
+          "Implement and utilize linked lists for dynamic data storage.",
+          "Understand and apply hash tables and tries for efficient lookups.",
+          "Utilize stacks and queues for managing ordered data.",
+          "Build and traverse tree structures for hierarchical data."
+        ]
+      },
+      {
+        "id": "topic-7",
+        "slug": "web-dev-basics",
+        "label": "Web Development Basics",
+        "summary": "Get introduced to the core technologies of the web: HTTP, HTML for structure, CSS for styling, PHP for server-side logic, and SQL for databases.",
+        "status": "ready",
+        "position": {
+          "x": 690,
+          "y": 630
+        },
+        "duration": "1 week",
+        "track": "Web Development",
+        "outcomes": [
+          "Understand the HTTP protocol for web communication.",
+          "Create structured web pages with HTML.",
+          "Style web pages effectively with CSS.",
+          "Implement server-side logic using PHP and interact with databases using SQL."
+        ]
+      },
+      {
+        "id": "topic-8",
+        "slug": "client-side-javascript",
+        "label": "Client-Side JavaScript",
+        "summary": "Learn JavaScript for interactive web experiences and explore AJAX for dynamic content loading without page reloads.",
+        "status": "ready",
+        "position": {
+          "x": 580,
+          "y": 810
+        },
+        "duration": "1 week",
+        "track": "Web Development",
+        "outcomes": [
+          "Write interactive client-side scripts with JavaScript.",
+          "Manipulate the Document Object Model (DOM) for dynamic content.",
+          "Implement dynamic content updates using AJAX.",
+          "Enhance user experience on web applications."
+        ]
+      },
+      {
+        "id": "topic-9",
+        "slug": "final-project",
+        "label": "Final Project",
+        "summary": "Apply all learned programming and computer science concepts to design and implement a significant software project.",
+        "status": "project",
+        "position": {
+          "x": 470,
+          "y": 990
+        },
+        "duration": "2 weeks",
+        "track": "Project",
+        "outcomes": [
+          "Design and implement a complete software application.",
+          "Collaborate effectively on a programming project.",
+          "Present a software demo video.",
+          "Solve a real-world problem using programming skills."
+        ]
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge-1",
+        "source": "topic-1",
+        "target": "topic-2",
+        "label": null
+      },
+      {
+        "id": "edge-2",
+        "source": "topic-2",
+        "target": "topic-3",
+        "label": null
+      },
+      {
+        "id": "edge-3",
+        "source": "topic-3",
+        "target": "topic-4",
+        "label": null
+      },
+      {
+        "id": "edge-4",
+        "source": "topic-3",
+        "target": "topic-5",
+        "label": null
+      },
+      {
+        "id": "edge-5",
+        "source": "topic-3",
+        "target": "topic-7",
+        "label": null
+      },
+      {
+        "id": "edge-6",
+        "source": "topic-4",
+        "target": "topic-6",
+        "label": null
+      },
+      {
+        "id": "edge-7",
+        "source": "topic-5",
+        "target": "topic-6",
+        "label": null
+      },
+      {
+        "id": "edge-8",
+        "source": "topic-7",
+        "target": "topic-8",
+        "label": null
+      },
+      {
+        "id": "edge-9",
+        "source": "topic-6",
+        "target": "topic-9",
+        "label": null
+      },
+      {
+        "id": "edge-10",
+        "source": "topic-8",
+        "target": "topic-9",
+        "label": null
+      }
+    ],
+    "lessons": [
+      {
+        "slug": "computational-thinking-scratch",
+        "headline": "Learn the core ideas behind Computational Thinking & Scratch.",
+        "intro": "Explore fundamental computer science concepts like algorithms, binary, and pseudocode using Scratch, a visual programming language.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Explore fundamental computer science concepts like algorithms, binary, and pseudocode using Scratch, a visual programming language."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand algorithmic thinking and problem-solving.",
+          "Write basic programs with conditions and loops.",
+          "Represent data in binary and ASCII."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "intro-c-programming",
+        "headline": "Learn the core ideas behind Introduction to C Programming.",
+        "intro": "Learn the basics of the C programming language, including compilation, standard I/O, and working within a Linux environment.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Learn the basics of the C programming language, including compilation, standard I/O, and working within a Linux environment."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Set up a C development environment.",
+          "Compile and run basic C programs.",
+          "Use fundamental C data types and print output."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "c-control-flow-arrays",
+        "headline": "Learn the core ideas behind C Control Flow & Arrays.",
+        "intro": "Deepen C programming skills with control structures like switches, understand variable scope, and work with strings and arrays.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Deepen C programming skills with control structures like switches, understand variable scope, and work with strings and arrays."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Implement conditional logic with 'switch' statements.",
+          "Manage variable scope effectively within C programs.",
+          "Work with strings and character arrays."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "algorithms-efficiency",
+        "headline": "Learn the core ideas behind Algorithms & Efficiency.",
+        "intro": "Study common searching and sorting algorithms, analyze their efficiency using Big O notation, and learn debugging techniques.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Study common searching and sorting algorithms, analyze their efficiency using Big O notation, and learn debugging techniques."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Implement various search and sort algorithms (e.g., Bubble, Merge).",
+          "Analyze algorithm runtime complexity using Big O, Omega, and Theta notations.",
+          "Develop effective debugging strategies for C programs."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "pointers-memory",
+        "headline": "Learn the core ideas behind Pointers & Dynamic Memory.",
+        "intro": "Master pointers, dynamic memory allocation, and understand the stack and heap, crucial for advanced C programming.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Master pointers, dynamic memory allocation, and understand the stack and heap, crucial for advanced C programming."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Use pointers to manipulate memory directly.",
+          "Allocate and deallocate memory dynamically using malloc and free.",
+          "Differentiate between stack and heap memory regions."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "core-data-structures",
+        "headline": "Learn the core ideas behind Core Data Structures.",
+        "intro": "Explore fundamental data structures like linked lists, hash tables, tries, stacks, queues, and trees for efficient data organization.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Explore fundamental data structures like linked lists, hash tables, tries, stacks, queues, and trees for efficient data organization."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Implement and utilize linked lists for dynamic data storage.",
+          "Understand and apply hash tables and tries for efficient lookups.",
+          "Utilize stacks and queues for managing ordered data."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "web-dev-basics",
+        "headline": "Learn the core ideas behind Web Development Basics.",
+        "intro": "Get introduced to the core technologies of the web: HTTP, HTML for structure, CSS for styling, PHP for server-side logic, and SQL for databases.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Get introduced to the core technologies of the web: HTTP, HTML for structure, CSS for styling, PHP for server-side logic, and SQL for databases."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Understand the HTTP protocol for web communication.",
+          "Create structured web pages with HTML.",
+          "Style web pages effectively with CSS."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "client-side-javascript",
+        "headline": "Learn the core ideas behind Client-Side JavaScript.",
+        "intro": "Learn JavaScript for interactive web experiences and explore AJAX for dynamic content loading without page reloads.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Learn JavaScript for interactive web experiences and explore AJAX for dynamic content loading without page reloads."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Write interactive client-side scripts with JavaScript.",
+          "Manipulate the Document Object Model (DOM) for dynamic content.",
+          "Implement dynamic content updates using AJAX."
+        ],
+        "relatedSlugs": []
+      },
+      {
+        "slug": "final-project",
+        "headline": "Learn the core ideas behind Final Project.",
+        "intro": "Apply all learned programming and computer science concepts to design and implement a significant software project.",
+        "sections": [
+          {
+            "title": "Why it matters",
+            "body": "Apply all learned programming and computer science concepts to design and implement a significant software project."
+          },
+          {
+            "title": "What to focus on",
+            "body": "Use the syllabus context and related topics to reinforce this unit."
+          }
+        ],
+        "takeaways": [
+          "Design and implement a complete software application.",
+          "Collaborate effectively on a programming project.",
+          "Present a software demo video."
+        ],
+        "relatedSlugs": []
+      }
+    ]
+  }
+]
