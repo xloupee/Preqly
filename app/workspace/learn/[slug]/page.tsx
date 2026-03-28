@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowUpRight, Compass } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
+import { CourseMapMinimap } from "@/components/course-map-minimap";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import {
   courseMapLessons,
@@ -36,7 +37,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
   return (
     <main className="workspace-route">
       <section className="course-hero">
-        <WorkspaceShell>
+        <WorkspaceShell sidebarBottom={<CourseMapMinimap activeSlug={node.slug} />}>
           <section className="workspace-canvas-panel learn-panel" aria-label={`Learn more about ${node.label}`}>
             <div className="learn-page">
               <div className="learn-page-actions">
