@@ -12,8 +12,7 @@ type AuthMode = "signin" | "signup";
 type FormStatus = "idle" | "invalid" | "submitting" | "success" | "error";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const passwordPattern =
-  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d@$!%*?&^#()_\-+=]{8,72}$/;
+const passwordPattern = /^.{6,72}$/;
 const isConfigured = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
@@ -74,13 +73,17 @@ function mapAuthError(message: string, mode: AuthMode) {
 
 export function AuthPanel({
   authStatus,
-  userEmail
+  userEmail,
+  initialMode = "signup",
+  redirectTo = "/workspace"
 }: {
   authStatus: string | null;
   userEmail: string | null;
+  initialMode?: AuthMode;
+  redirectTo?: string;
 }) {
   const router = useRouter();
-  const [mode, setMode] = useState<AuthMode>("signup");
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [status, setStatus] = useState<FormStatus>("idle");
@@ -110,9 +113,7 @@ export function AuthPanel({
 
     if (!validatePassword(password)) {
       setStatus("invalid");
-      setMessage(
-        "Password must be 8+ characters and include an uppercase letter, a lowercase letter, and a number."
-      );
+      setMessage("Password must be at least 6 characters.");
       return;
     }
 
@@ -125,7 +126,7 @@ export function AuthPanel({
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm`
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/auth`
         }
       });
 
@@ -142,6 +143,12 @@ export function AuthPanel({
           : "If this email can be registered, check your inbox for a confirmation link. If you already have an account, log in instead."
       );
       setPassword("");
+
+      if (data.session) {
+        router.push(redirectTo);
+        return;
+      }
+
       router.refresh();
       return;
     }
@@ -160,7 +167,7 @@ export function AuthPanel({
     setStatus("success");
     setMessage("Signed in.");
     setPassword("");
-    router.refresh();
+    router.push(redirectTo);
   };
 
   const handleSignOut = async () => {
@@ -239,7 +246,7 @@ export function AuthPanel({
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
           placeholder={
             mode === "signup"
-              ? "8+ chars, upper/lowercase, number"
+              ? "At least 6 characters"
               : "Your password"
           }
           value={password}

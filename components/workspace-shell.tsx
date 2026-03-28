@@ -1,69 +1,128 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { BookOpenText, ChevronLeft, FolderKanban, Settings, Sparkles } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { BookOpenText, ChevronLeft, FolderKanban, Settings } from "lucide-react";
+
+import { BrandLogo } from "@/components/brand-logo";
+import { type ClassRecord } from "@/lib/class-record";
+import { WorkspaceClassSwitcher } from "@/components/workspace-class-switcher";
 
 const sidebarItems = [
-  { label: "Courses", href: "/workspace", icon: BookOpenText, active: true },
-  { label: "Dashboard", href: "/workspace", icon: FolderKanban, active: false },
-  { label: "Settings", href: "/workspace", icon: Settings, active: false },
+  { label: "Courses", href: "/workspace", icon: BookOpenText },
+  { label: "Dashboard", href: "/dashboard", icon: FolderKanban },
 ];
 
 const courseSections = ["Summary", "Versions", "Notes"];
 
 type WorkspaceShellProps = {
   children: ReactNode;
+  classes?: ClassRecord[];
+  activeClass?: ClassRecord | null;
+  classesEnabled?: boolean;
+  classesMessage?: string | null;
+  userEmail?: string | null;
   sidebarBottom?: ReactNode;
 };
 
-export function WorkspaceShell({ children, sidebarBottom }: WorkspaceShellProps) {
+export function WorkspaceShell({
+  children,
+  classes,
+  activeClass,
+  classesEnabled = true,
+  classesMessage = null,
+  userEmail = null,
+  sidebarBottom,
+}: WorkspaceShellProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const pathname = usePathname();
+  const hasClassWorkspace = classes !== undefined;
+  const profileLabel = userEmail ?? "Signed in";
+  const initials = (userEmail?.[0] ?? "P").toUpperCase();
+
   return (
-    <div className="workspace-shell">
+    <div className={`workspace-shell${isCollapsed ? " is-collapsed" : ""}`}>
       <aside className="workspace-sidebar">
         <div className="sidebar-brand">
           <div className="sidebar-logo">
-            <Sparkles aria-hidden="true" />
+            <BrandLogo size={28} className="sidebar-logo-image" />
           </div>
-          <div>
+          <div className="sidebar-brand-copy">
             <p className="sidebar-overline">Preqly</p>
             <h1>Workspace</h1>
           </div>
-          <button className="sidebar-collapse" type="button" aria-label="Collapse navigation">
+          <button
+            className="sidebar-collapse"
+            type="button"
+            aria-label={isCollapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-expanded={!isCollapsed}
+            onClick={() => setIsCollapsed((current) => !current)}
+          >
             <ChevronLeft aria-hidden="true" />
           </button>
         </div>
 
         <nav className="sidebar-nav" aria-label="Primary">
-          {sidebarItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={item.active ? "sidebar-link is-active" : "sidebar-link"}
-            >
-              <item.icon aria-hidden="true" />
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {sidebarItems.map((item) => {
+            const isActive =
+              item.href === "/workspace"
+                ? pathname === "/workspace" || pathname.startsWith("/workspace/")
+                : pathname === item.href;
+
+            return (
+              <Link
+                key={item.label}
+                href={item.href}
+                className={isActive ? "sidebar-link is-active" : "sidebar-link"}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <item.icon aria-hidden="true" />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
-        <section className="sidebar-course-card" aria-label="Selected course">
-          <p className="sidebar-course-label">Current course</p>
-          <h2>CS50 Intro</h2>
-          <div className="sidebar-course-sections">
-            {courseSections.map((section) => (
-              <button key={section} type="button" className="sidebar-section-link">
-                {section}
-              </button>
-            ))}
-          </div>
-        </section>
+        {hasClassWorkspace ? (
+          <WorkspaceClassSwitcher
+            classes={classes}
+            activeClassId={activeClass?.id ?? null}
+            classesEnabled={classesEnabled}
+            classesMessage={classesMessage}
+          />
+        ) : (
+          <section className="sidebar-course-card" aria-label="Selected course">
+            <p className="sidebar-course-label">Current course</p>
+            <h2>CS50 Intro</h2>
+            <div className="sidebar-course-sections">
+              {courseSections.map((section) => (
+                <button key={section} type="button" className="sidebar-section-link">
+                  {section}
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {sidebarBottom}
 
         <div className="sidebar-footer">
-          <button className="sidebar-link" type="button">
+          <button className="sidebar-link" type="button" title={isCollapsed ? "Settings" : undefined}>
             <Settings aria-hidden="true" />
             <span>Settings</span>
           </button>
+
+          <div className="sidebar-profile" aria-label="Signed-in profile">
+            <div className="sidebar-profile-avatar" aria-hidden="true">
+              {initials}
+            </div>
+            <div className="sidebar-profile-copy">
+              <p className="sidebar-profile-label">Profile</p>
+              <p className="sidebar-profile-email">{profileLabel}</p>
+            </div>
+          </div>
         </div>
       </aside>
 

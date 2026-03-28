@@ -12,13 +12,14 @@ import {
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
+  getSmoothStepPath,
   Handle,
-  MarkerType,
   Position,
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
   type Edge,
+  type EdgeProps,
   type Node,
   type NodeProps,
 } from "reactflow";
@@ -26,7 +27,6 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import { Button } from "@/components/ui/button";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
 
 type GraphNodeData = CourseMapNode & {
@@ -35,6 +35,11 @@ type GraphNodeData = CourseMapNode & {
   dimmed: boolean;
   matched: boolean;
   relation: "selected" | "prerequisite" | "unlocks" | "connected" | "default";
+};
+
+type GraphEdgeData = {
+  className: string;
+  flowVariant: "none" | "dotted" | "solid";
 };
 
 type HandleId =
@@ -101,8 +106,60 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
   );
 }
 
+function AnimatedCourseEdge({
+  id,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  sourcePosition,
+  targetPosition,
+  markerEnd,
+  style,
+  data,
+}: EdgeProps<GraphEdgeData>) {
+  const [edgePath] = getSmoothStepPath({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    borderRadius: 18,
+  });
+
+  return (
+    <g className={data?.className}>
+      <path
+        id={id}
+        d={edgePath}
+        fill="none"
+        className={
+          data?.flowVariant === "dotted"
+            ? "course-edge-path-base is-flowing-dotted"
+            : "course-edge-path-base"
+        }
+        markerEnd={markerEnd}
+        style={style}
+      />
+      {data?.flowVariant === "solid" ? (
+        <path
+          d={edgePath}
+          fill="none"
+          pathLength={100}
+          className="course-edge-path-flow is-flowing-solid"
+        />
+      ) : null}
+    </g>
+  );
+}
+
 const nodeTypes = {
   course: CourseNode,
+};
+
+const edgeTypes = {
+  course: AnimatedCourseEdge,
 };
 
 function collectAdjacentNodeIds(selectedId: string | null) {
@@ -248,7 +305,7 @@ function MapCanvas() {
     [nodes],
   );
 
-  const edges = useMemo<Edge[]>(() => {
+  const edges = useMemo<Edge<GraphEdgeData>[]>(() => {
     return courseMapEdges.map((edge) => {
       const sourceNode = nodeLookup[edge.source];
       const targetNode = nodeLookup[edge.target];
@@ -270,10 +327,21 @@ function MapCanvas() {
       return {
         ...edge,
         animated: false,
-        type: "smoothstep",
+        type: "course",
         sourceHandle,
         targetHandle,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
+        data: {
+          className: [
+            "course-edge",
+            "is-visible",
+            active || emphasizedBySearch ? "is-active" : "",
+            directlyUpstream ? "is-upstream" : "",
+            directlyDownstream ? "is-downstream" : "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+          flowVariant: directlyDownstream ? "solid" : directlyUpstream ? "dotted" : "none",
+        },
         style: {
           stroke:
             directlyConnected || emphasizedBySearch
@@ -281,18 +349,17 @@ function MapCanvas() {
               : active
                 ? "rgba(122, 103, 71, 0.66)"
                 : "rgba(122, 103, 71, 0.44)",
-          strokeWidth: directlyConnected ? 3.2 : active || emphasizedBySearch ? 2.4 : 2,
-          strokeDasharray: directlyConnected ? undefined : active || emphasizedBySearch ? "5 9" : "4 8",
+          strokeWidth:
+            directlyDownstream ? 3.35 : directlyUpstream ? 3.05 : active || emphasizedBySearch ? 2.4 : 2,
+          strokeDasharray:
+            directlyDownstream
+              ? undefined
+              : directlyUpstream
+                ? "7 11"
+                : active || emphasizedBySearch
+                  ? "5 9"
+                  : "4 8",
         },
-        className: [
-          "course-edge",
-          "is-visible",
-          active || emphasizedBySearch ? "is-active" : "",
-          directlyUpstream ? "is-upstream" : "",
-          directlyDownstream ? "is-downstream" : "",
-        ]
-          .filter(Boolean)
-          .join(" "),
         labelStyle: {
           fill: "rgba(122, 103, 71, 0.65)",
           fontSize: 11,
@@ -324,99 +391,98 @@ function MapCanvas() {
   };
 
   return (
-    <WorkspaceShell>
-      <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
-        <div
-          ref={canvasRef}
-          className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
-          onPointerMove={handleCanvasPointerMove}
-          onPointerLeave={handleCanvasPointerLeave}
-        >
-          <div className="graph-controls-panel">
-            <button
-              type="button"
-              className="graph-control-button"
-              aria-label="Zoom in"
-              onClick={() => graphApi.zoomIn({ duration: 250 })}
-            >
-              <Plus aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="graph-control-button"
-              aria-label="Zoom out"
-              onClick={() => graphApi.zoomOut({ duration: 250 })}
-            >
-              <Minus aria-hidden="true" />
-            </button>
-            <label className="graph-search">
-              <Search aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search topics"
-                aria-label="Search map nodes"
-              />
-            </label>
-          </div>
-
-          <ReactFlow
-            fitView
-            fitViewOptions={{ padding: 0.2, minZoom: 0.72 }}
-            minZoom={0.62}
-            maxZoom={1.5}
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            nodesConnectable={false}
-            proOptions={{ hideAttribution: true }}
-            connectionLineType={ConnectionLineType.SmoothStep}
-            onNodesChange={onNodesChange}
-            defaultEdgeOptions={{
-              type: "smoothstep",
-              style: { strokeLinecap: "round" },
-            }}
-            onNodeClick={(_, node) => setSelectedId(node.id)}
-          />
-
-          <aside className="node-detail-card" aria-live="polite">
-            <p className="node-detail-kicker">{selectedNode.track}</p>
-            <div className="node-detail-heading">
-              <h2>{selectedNode.label}</h2>
-              <span>{selectedNode.duration}</span>
-            </div>
-            <p className="node-detail-summary">{selectedNode.summary}</p>
-            <div className="node-detail-meta">
-              <span className={`node-status-chip status-${selectedNode.status}`}>
-                {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
-              </span>
-              <span className="node-status-chip node-status-chip-muted">
-                {connectedIds.size} linked topics
-              </span>
-            </div>
-            <div className="node-outcomes">
-              {selectedNode.outcomes.map((outcome) => (
-                <div key={outcome} className="node-outcome-item">
-                  <ArrowUpRight aria-hidden="true" />
-                  <span>{outcome}</span>
-                </div>
-              ))}
-            </div>
-            <div className="node-detail-actions">
-              <Button asChild size="sm">
-                <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
-              </Button>
-            </div>
-          </aside>
-
-          <div className="canvas-caption">
-            <Database aria-hidden="true" />
-            <span>Prerequisite map synced to the current course shell</span>
-          </div>
+    <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
+      <div
+        ref={canvasRef}
+        className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerLeave={handleCanvasPointerLeave}
+      >
+        <div className="graph-controls-panel">
+          <button
+            type="button"
+            className="graph-control-button"
+            aria-label="Zoom in"
+            onClick={() => graphApi.zoomIn({ duration: 250 })}
+          >
+            <Plus aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="graph-control-button"
+            aria-label="Zoom out"
+            onClick={() => graphApi.zoomOut({ duration: 250 })}
+          >
+            <Minus aria-hidden="true" />
+          </button>
+          <label className="graph-search">
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search topics"
+              aria-label="Search map nodes"
+            />
+          </label>
         </div>
-      </section>
-    </WorkspaceShell>
+
+        <ReactFlow
+          fitView
+          fitViewOptions={{ padding: 0.28, minZoom: 0.34 }}
+          minZoom={0.22}
+          maxZoom={1.5}
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesConnectable={false}
+          proOptions={{ hideAttribution: true }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          onNodesChange={onNodesChange}
+          defaultEdgeOptions={{
+            type: "smoothstep",
+            style: { strokeLinecap: "round" },
+          }}
+          onNodeClick={(_, node) => setSelectedId(node.id)}
+        />
+
+        <aside className="node-detail-card" aria-live="polite">
+          <p className="node-detail-kicker">{selectedNode.track}</p>
+          <div className="node-detail-heading">
+            <h2>{selectedNode.label}</h2>
+            <span>{selectedNode.duration}</span>
+          </div>
+          <p className="node-detail-summary">{selectedNode.summary}</p>
+          <div className="node-detail-meta">
+            <span className={`node-status-chip status-${selectedNode.status}`}>
+              {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
+            </span>
+            <span className="node-status-chip node-status-chip-muted">
+              {connectedIds.size} linked topics
+            </span>
+          </div>
+          <div className="node-outcomes">
+            {selectedNode.outcomes.map((outcome) => (
+              <div key={outcome} className="node-outcome-item">
+                <ArrowUpRight aria-hidden="true" />
+                <span>{outcome}</span>
+              </div>
+            ))}
+          </div>
+          <div className="node-detail-actions">
+            <Button asChild size="sm">
+              <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
+            </Button>
+          </div>
+        </aside>
+
+        <div className="canvas-caption">
+          <Database aria-hidden="true" />
+          <span>Prerequisite map synced to the current course shell</span>
+        </div>
+      </div>
+    </section>
   );
 }
 

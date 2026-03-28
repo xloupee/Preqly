@@ -1,34 +1,9 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
-import { AuthPanel } from "@/components/auth/auth-panel";
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
 
-const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
-
-type HomeProps = {
-  searchParams?: Promise<{
-    auth?: string;
-  }>;
-};
-
-export default async function Home({ searchParams }: HomeProps) {
-  const params = await searchParams;
-  const authStatus = params?.auth ?? null;
-  let userEmail: string | null = null;
-
-  if (
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-  ) {
-    const supabase = await createClient();
-    const {
-      data: { user }
-    } = await supabase.auth.getUser();
-
-    userEmail = user?.email ?? null;
-  }
-
+export default function Home() {
   return (
     <main className="landing-page">
       <div className="ambient ambient-left" />
@@ -38,7 +13,7 @@ export default async function Home({ searchParams }: HomeProps) {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">
-            <Sparkles aria-hidden="true" />
+            <BrandLogo size={18} className="inline-brand-logo" />
             Live lecture intelligence
           </p>
           <h1 className="wordmark">preqly</h1>
@@ -49,7 +24,7 @@ export default async function Home({ searchParams }: HomeProps) {
           </p>
           <div className="hero-actions">
             <Button asChild size="lg">
-              <a href="/workspace">
+              <a href="/auth">
                 Get Started
                 <ArrowRight aria-hidden="true" />
               </a>
@@ -57,44 +32,45 @@ export default async function Home({ searchParams }: HomeProps) {
           </div>
         </div>
 
-        <div className="orbital-card" aria-hidden="true">
-          <div className="orbital-node orbital-node-primary">
-            Lecture stream
+        <div className="hero-visualization" aria-hidden="true">
+          <div className="viz-core">
+            <div className="viz-core-inner">
+              <BrandLogo size={34} priority className="viz-logo" />
+            </div>
+            <div className="viz-pulse" />
+            <div className="viz-pulse delay-1" />
           </div>
-          <div className="orbital-node orbital-node-secondary">
-            Concept graph
+
+          <div className="viz-orbit">
+            <div className="viz-node viz-node-1">
+              <div className="viz-node-frame">
+                <span className="node-label">Lecture stream</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-2">
+              <div className="viz-node-frame">
+                <span className="node-label">Concept graph</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-3">
+              <div className="viz-node-frame">
+                <span className="node-label">Preqly gaps</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-4">
+              <div className="viz-node-frame">
+                <span className="node-label">Follow-up prompts</span>
+              </div>
+            </div>
           </div>
-          <div className="orbital-node orbital-node-tertiary">
-            Preqly gaps
-          </div>
-          <div className="orbital-node orbital-node-quaternary">
-            Follow-up prompts
-          </div>
+
+          <svg className="viz-connections" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="200" cy="200" r="120" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 8" className="viz-ring-svg" />
+            <circle cx="200" cy="200" r="180" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 8" className="viz-ring-svg" />
+          </svg>
         </div>
       </section>
 
-      <section className="compatibility">
-        <p className="compatibility-label">Works with</p>
-        <div className="compatibility-strip">
-          {partners.map((partner) => (
-            <span className="partner-pill" key={partner}>
-              {partner}
-            </span>
-          ))}
-        </div>
-      </section>
-
-      <section className="waitlist-section" id="waitlist">
-        <div className="waitlist-copy">
-          <p className="section-kicker">Early access</p>
-          <h2>Create your Preqly account and keep the workspace within reach.</h2>
-          <p>
-            Sign up or log in from the landing page, then move into the workspace
-            when you want to explore the course map and syllabus upload flow.
-          </p>
-        </div>
-        <AuthPanel authStatus={authStatus} userEmail={userEmail} />
-      </section>
     </main>
   );
 }

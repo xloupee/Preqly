@@ -8,7 +8,7 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
-  const next = searchParams.get("next") ?? "/";
+  const next = searchParams.get("next") ?? "/auth";
   const successRedirect = new URL(`${next}?auth=confirmed`, origin);
 
   const supabase = await createClient();
@@ -32,5 +32,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL("/?auth=error", origin));
+  return NextResponse.redirect(new URL("/auth?auth=error", origin));
 }
