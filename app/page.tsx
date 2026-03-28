@@ -31,19 +31,42 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="orbital-card" aria-hidden="true">
-          <div className="orbital-node orbital-node-primary">
-            Lecture stream
+        <div className="hero-visualization" aria-hidden="true">
+          <div className="viz-core">
+            <div className="viz-core-inner">
+              <Sparkles className="viz-spark" />
+            </div>
+            <div className="viz-pulse" />
+            <div className="viz-pulse delay-1" />
           </div>
-          <div className="orbital-node orbital-node-secondary">
-            Concept graph
+
+          <div className="viz-orbit">
+            <div className="viz-node viz-node-1">
+              <div className="viz-node-frame">
+                <span className="node-label">Lecture stream</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-2">
+              <div className="viz-node-frame">
+                <span className="node-label">Concept graph</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-3">
+              <div className="viz-node-frame">
+                <span className="node-label">Preqly gaps</span>
+              </div>
+            </div>
+            <div className="viz-node viz-node-4">
+              <div className="viz-node-frame">
+                <span className="node-label">Follow-up prompts</span>
+              </div>
+            </div>
           </div>
-          <div className="orbital-node orbital-node-tertiary">
-            Preqly gaps
-          </div>
-          <div className="orbital-node orbital-node-quaternary">
-            Follow-up prompts
-          </div>
+
+          <svg className="viz-connections" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="200" cy="200" r="120" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 8" className="viz-ring-svg" />
+            <circle cx="200" cy="200" r="180" stroke="currentColor" strokeWidth="0.5" strokeDasharray="4 8" className="viz-ring-svg" />
+          </svg>
         </div>
       </section>
 

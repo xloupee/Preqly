@@ -28,7 +28,6 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 
 import { Button } from "@/components/ui/button";
-import { WorkspaceShell } from "@/components/workspace-shell";
 import { courseMapEdges, courseMapNodes, type CourseMapNode } from "@/lib/course-map-data";
 
 type GraphNodeData = CourseMapNode & {
@@ -374,100 +373,98 @@ function MapCanvas() {
   };
 
   return (
-    <WorkspaceShell>
-      <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
-        <div
-          ref={canvasRef}
-          className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
-          onPointerMove={handleCanvasPointerMove}
-          onPointerLeave={handleCanvasPointerLeave}
-        >
-          <div className="graph-controls-panel">
-            <button
-              type="button"
-              className="graph-control-button"
-              aria-label="Zoom in"
-              onClick={() => graphApi.zoomIn({ duration: 250 })}
-            >
-              <Plus aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="graph-control-button"
-              aria-label="Zoom out"
-              onClick={() => graphApi.zoomOut({ duration: 250 })}
-            >
-              <Minus aria-hidden="true" />
-            </button>
-            <label className="graph-search">
-              <Search aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search topics"
-                aria-label="Search map nodes"
-              />
-            </label>
-          </div>
-
-          <ReactFlow
-            fitView
-            fitViewOptions={{ padding: 0.2, minZoom: 0.72 }}
-            minZoom={0.62}
-            maxZoom={1.5}
-            nodes={nodes}
-            edges={edges}
-            nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
-            nodesConnectable={false}
-            proOptions={{ hideAttribution: true }}
-            connectionLineType={ConnectionLineType.SmoothStep}
-            onNodesChange={onNodesChange}
-            defaultEdgeOptions={{
-              type: "smoothstep",
-              style: { strokeLinecap: "round" },
-            }}
-            onNodeClick={(_, node) => setSelectedId(node.id)}
-          />
-
-          <aside className="node-detail-card" aria-live="polite">
-            <p className="node-detail-kicker">{selectedNode.track}</p>
-            <div className="node-detail-heading">
-              <h2>{selectedNode.label}</h2>
-              <span>{selectedNode.duration}</span>
-            </div>
-            <p className="node-detail-summary">{selectedNode.summary}</p>
-            <div className="node-detail-meta">
-              <span className={`node-status-chip status-${selectedNode.status}`}>
-                {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
-              </span>
-              <span className="node-status-chip node-status-chip-muted">
-                {connectedIds.size} linked topics
-              </span>
-            </div>
-            <div className="node-outcomes">
-              {selectedNode.outcomes.map((outcome) => (
-                <div key={outcome} className="node-outcome-item">
-                  <ArrowUpRight aria-hidden="true" />
-                  <span>{outcome}</span>
-                </div>
-              ))}
-            </div>
-            <div className="node-detail-actions">
-              <Button asChild size="sm">
-                <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
-              </Button>
-            </div>
-          </aside>
-
-          <div className="canvas-caption">
-            <Database aria-hidden="true" />
-            <span>Prerequisite map synced to the current course shell</span>
-          </div>
+    <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
+      <div
+        ref={canvasRef}
+        className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
+        onPointerMove={handleCanvasPointerMove}
+        onPointerLeave={handleCanvasPointerLeave}
+      >
+        <div className="graph-controls-panel">
+          <button
+            type="button"
+            className="graph-control-button"
+            aria-label="Zoom in"
+            onClick={() => graphApi.zoomIn({ duration: 250 })}
+          >
+            <Plus aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="graph-control-button"
+            aria-label="Zoom out"
+            onClick={() => graphApi.zoomOut({ duration: 250 })}
+          >
+            <Minus aria-hidden="true" />
+          </button>
+          <label className="graph-search">
+            <Search aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search topics"
+              aria-label="Search map nodes"
+            />
+          </label>
         </div>
-      </section>
-    </WorkspaceShell>
+
+        <ReactFlow
+          fitView
+          fitViewOptions={{ padding: 0.28, minZoom: 0.34 }}
+          minZoom={0.22}
+          maxZoom={1.5}
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          nodesConnectable={false}
+          proOptions={{ hideAttribution: true }}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          onNodesChange={onNodesChange}
+          defaultEdgeOptions={{
+            type: "smoothstep",
+            style: { strokeLinecap: "round" },
+          }}
+          onNodeClick={(_, node) => setSelectedId(node.id)}
+        />
+
+        <aside className="node-detail-card" aria-live="polite">
+          <p className="node-detail-kicker">{selectedNode.track}</p>
+          <div className="node-detail-heading">
+            <h2>{selectedNode.label}</h2>
+            <span>{selectedNode.duration}</span>
+          </div>
+          <p className="node-detail-summary">{selectedNode.summary}</p>
+          <div className="node-detail-meta">
+            <span className={`node-status-chip status-${selectedNode.status}`}>
+              {selectedNode.status === "project" ? "Capstone" : selectedNode.status}
+            </span>
+            <span className="node-status-chip node-status-chip-muted">
+              {connectedIds.size} linked topics
+            </span>
+          </div>
+          <div className="node-outcomes">
+            {selectedNode.outcomes.map((outcome) => (
+              <div key={outcome} className="node-outcome-item">
+                <ArrowUpRight aria-hidden="true" />
+                <span>{outcome}</span>
+              </div>
+            ))}
+          </div>
+          <div className="node-detail-actions">
+            <Button asChild size="sm">
+              <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
+            </Button>
+          </div>
+        </aside>
+
+        <div className="canvas-caption">
+          <Database aria-hidden="true" />
+          <span>Prerequisite map synced to the current course shell</span>
+        </div>
+      </div>
+    </section>
   );
 }
 
