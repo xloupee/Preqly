@@ -1,14 +1,24 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { useEffect, useId, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { BookOpenText, ChevronLeft, FolderKanban, Settings } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  BookOpenText,
+  ChevronLeft,
+  FolderKanban,
+  LoaderCircle,
+  LogOut,
+  Settings,
+  X,
+} from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
+import { Button } from "@/components/ui/button";
 import { type ClassRecord } from "@/lib/class-record";
 import type { CourseRecord } from "@/lib/course-types";
+import { createClient } from "@/lib/supabase/client";
 import { WorkspaceClassSwitcher } from "@/components/workspace-class-switcher";
 import { WorkspaceCourseSwitcher } from "@/components/workspace-course-switcher";
 
@@ -43,11 +53,62 @@ export function WorkspaceShell({
   sidebarBottom,
 }: WorkspaceShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
   const hasClassWorkspace = classes !== undefined;
   const hasCourseWorkspace = courses !== undefined;
   const profileLabel = userEmail ?? "Signed in";
   const initials = (userEmail?.[0] ?? "P").toUpperCase();
+  const settingsTitleId = useId();
+  const settingsDescriptionId = useId();
+
+  useEffect(() => {
+    if (!isSettingsOpen) {
+      return;
+    }
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsSettingsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isSettingsOpen]);
+
+  async function handleSignOut() {
+    setIsSigningOut(true);
+
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setIsSettingsOpen(false);
+      router.push("/auth");
+      router.refresh();
+    } finally {
+      setIsSigningOut(false);
+    }
+  }
+
+  function handleSettingsBackdropClick() {
+    setIsSettingsOpen(false);
+  }
+
+  function handleSettingsPanelClick(event: ReactMouseEvent<HTMLDivElement>) {
+    event.stopPropagation();
+  }
+
+  function handleSettingsKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
+    if (event.key === "Escape") {
+      setIsSettingsOpen(false);
+    }
+  }
 
   return (
     <div className={`workspace-shell${isCollapsed ? " is-collapsed" : ""}`}>
@@ -120,7 +181,12 @@ export function WorkspaceShell({
         {sidebarBottom}
 
         <div className="sidebar-footer">
-          <button className="sidebar-link" type="button" title={isCollapsed ? "Settings" : undefined}>
+          <button
+            className="sidebar-link"
+            type="button"
+            title={isCollapsed ? "Settings" : undefined}
+            onClick={() => setIsSettingsOpen(true)}
+          >
             <Settings aria-hidden="true" />
             <span>Settings</span>
           </button>
@@ -136,6 +202,81 @@ export function WorkspaceShell({
           </div>
         </div>
       </aside>
+
+      {isSettingsOpen ? (
+        <div className="settings-modal-backdrop" onClick={handleSettingsBackdropClick}>
+          <div
+            className="settings-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={settingsTitleId}
+            aria-describedby={settingsDescriptionId}
+            onClick={handleSettingsPanelClick}
+            onKeyDown={handleSettingsKeyDown}
+          >
+            <div className="settings-modal-header">
+              <div>
+                <p className="settings-modal-kicker">Workspace account</p>
+                <h2 id={settingsTitleId}>Settings</h2>
+              </div>
+              <button
+                type="button"
+                className="settings-modal-close"
+                onClick={() => setIsSettingsOpen(false)}
+                aria-label="Close settings"
+              >
+                <X aria-hidden="true" />
+              </button>
+            </div>
+
+            <p id={settingsDescriptionId} className="settings-modal-description">
+              Manage the signed-in account and session for this workspace.
+            </p>
+
+            <section className="settings-modal-card" aria-label="Account details">
+              <div className="settings-modal-profile">
+                <div className="settings-modal-avatar" aria-hidden="true">
+                  {initials}
+                </div>
+                <div className="settings-modal-profile-copy">
+                  <p className="settings-modal-label">Signed in as</p>
+                  <p className="settings-modal-email">{profileLabel}</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="settings-modal-card" aria-label="Coming soon">
+              <p className="settings-modal-label">Coming soon</p>
+              <p className="settings-modal-note">
+                More account and workspace controls will live here as the product surface grows.
+              </p>
+            </section>
+
+            <div className="settings-modal-actions">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsSettingsOpen(false)}
+              >
+                Close
+              </Button>
+              <Button type="button" onClick={handleSignOut} disabled={isSigningOut}>
+                {isSigningOut ? (
+                  <>
+                    <LoaderCircle aria-hidden="true" className="animate-spin" />
+                    Signing out
+                  </>
+                ) : (
+                  <>
+                    Log out
+                    <LogOut aria-hidden="true" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {children}
     </div>
