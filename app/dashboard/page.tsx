@@ -81,10 +81,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                   <span>Learning dashboard</span>
                 </div>
                 <Button asChild size="sm">
-                  <Link href="/workspace">
-                    <BrandLogo size={16} className="inline-brand-logo" />
-                    Add class
-                  </Link>
+                  <Link href="/workspace">Add class</Link>
                 </Button>
               </div>
 
