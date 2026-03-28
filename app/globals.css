@@ -910,6 +910,11 @@ label[for],
   gap: 0.45rem;
 }
 
+.workspace-route .sidebar-top-slot {
+  display: grid;
+  gap: 0.85rem;
+}
+
 .workspace-route .sidebar-class-group {
   display: grid;
   gap: 0.9rem;
@@ -1212,6 +1217,135 @@ label[for],
   min-height: 0;
   overflow: auto;
   padding-right: 0.25rem;
+}
+
+.workspace-route .sidebar-minimap-card {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.workspace-route .sidebar-minimap-copy {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.workspace-route .sidebar-minimap-note {
+  margin: 0;
+  color: var(--foreground-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.workspace-route .sidebar-minimap-shell {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.workspace-route .sidebar-minimap-flow {
+  height: 18rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: 1.1rem;
+  background:
+    radial-gradient(circle at center, rgba(166, 146, 105, 0.16) 0 1.05px, transparent 1.2px),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.34) 0 0.6px, transparent 0.8px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.36), transparent 18%),
+    color-mix(in oklab, var(--surface) 86%, white 14%);
+  background-position:
+    0 0,
+    9px 9px,
+    0 0,
+    0 0;
+  background-size:
+    18px 18px,
+    18px 18px,
+    auto,
+    auto;
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__renderer,
+.workspace-route .sidebar-minimap-flow .react-flow__pane,
+.workspace-route .sidebar-minimap-flow .react-flow__viewport {
+  cursor: grab;
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__pane.dragging,
+.workspace-route .sidebar-minimap-flow .react-flow__viewport:active {
+  cursor: grabbing;
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__node {
+  width: 132px;
+  cursor: pointer;
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__edge path {
+  stroke: rgba(105, 87, 56, 0.72);
+  stroke-width: 2.2;
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__edge-marker {
+  fill: rgba(105, 87, 56, 1);
+  stroke: rgba(105, 87, 56, 1);
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__attribution {
+  display: none;
+}
+
+.workspace-route .sidebar-minimap-node {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.65rem;
+  border: 1px solid color-mix(in oklab, var(--border) 68%, transparent);
+  border-radius: 0.95rem;
+  background: color-mix(in oklab, var(--surface) 94%, white 6%);
+  padding: 0.55rem 0.7rem;
+  box-shadow:
+    0 12px 24px -24px var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.workspace-route .sidebar-minimap-handle {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.workspace-route .sidebar-minimap-node.is-active {
+  border-color: color-mix(in oklab, var(--accent-foreground) 45%, transparent);
+  background: color-mix(in oklab, var(--accent) 72%, white 28%);
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__node:hover .sidebar-minimap-node {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--ring) 52%, transparent);
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__node:hover .sidebar-minimap-label {
+  color: var(--foreground-dark);
+}
+
+.workspace-route .sidebar-minimap-flow .react-flow__node.selected .sidebar-minimap-node {
+  box-shadow: 0 0 0 2px color-mix(in oklab, var(--ring) 38%, transparent);
+}
+
+.workspace-route .sidebar-minimap-label {
+  color: var(--foreground-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.workspace-route .sidebar-minimap-label.is-active {
+  color: var(--accent-foreground);
 }
 
 .workspace-route .sidebar-footer {
@@ -2298,14 +2432,17 @@ label[for],
 
 .workspace-route .learn-panel {
   min-width: 0;
+  height: 100dvh;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .workspace-route .learn-page {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-height: 100%;
+  min-height: max-content;
   padding: clamp(1rem, 2.2vw, 1.6rem);
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.28), transparent 22%),
@@ -2467,6 +2604,554 @@ label[for],
   border-top: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
 }
 
+.workspace-route .practice-deck-card {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.workspace-route .practice-deck-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.workspace-route .practice-deck-header h2 {
+  margin: 0.35rem 0 0;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.workspace-route .practice-deck-summary {
+  margin: 0.7rem 0 0;
+  max-width: 42rem;
+  color: var(--foreground-soft);
+  line-height: 1.72;
+}
+
+.workspace-route .practice-deck-card button {
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+}
+
+.workspace-route .practice-deck-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.workspace-route .practice-deck-stats span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 86%, white 14%);
+  padding: 0.45rem 0.8rem;
+  color: var(--foreground-soft);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.workspace-route .practice-deck-stats svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  color: var(--accent-strong);
+}
+
+.workspace-route .practice-mode-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  width: fit-content;
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 0.35rem;
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 82%, white 18%);
+}
+
+.workspace-route .practice-mode-pill {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 0.55rem 0.95rem;
+  color: var(--foreground-soft);
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.workspace-route .practice-mode-pill.is-active {
+  background: var(--foreground);
+  color: var(--background);
+  box-shadow: 0 12px 28px -20px var(--shadow);
+}
+
+.workspace-route .practice-mode-pill.is-disabled {
+  opacity: 0.48;
+}
+
+.workspace-route .practice-card-shell {
+  display: grid;
+  gap: 1rem;
+}
+
+.workspace-route .practice-card-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+}
+
+.workspace-route .practice-card-tag,
+.workspace-route .practice-card-step {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.workspace-route .practice-card-tag {
+  background: color-mix(in oklab, var(--accent) 18%, var(--surface));
+  color: var(--accent-strong);
+}
+
+.workspace-route .practice-card-step {
+  border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
+  color: var(--foreground-soft);
+}
+
+.workspace-route .practice-card-stage {
+  animation-duration: 375ms;
+  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation-fill-mode: both;
+}
+
+.workspace-route .practice-card-stage.is-forward {
+  animation-name: practiceCardSlideForward;
+}
+
+.workspace-route .practice-card-stage.is-backward {
+  animation-name: practiceCardSlideBackward;
+}
+
+.workspace-route .practice-flip-card {
+  display: block;
+  width: 100%;
+  height: clamp(16rem, 40vh, 22rem);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  perspective: 1600px;
+}
+
+.workspace-route .practice-flip-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 580ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.workspace-route .practice-flip-card.is-flipped .practice-flip-card-inner {
+  transform: rotateY(180deg);
+}
+
+.workspace-route .practice-card-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 1rem;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 1.6rem;
+  padding: clamp(1.4rem, 3vw, 2rem);
+  text-align: left;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  box-shadow: none;
+}
+
+.workspace-route .practice-card-face-front {
+  transform: rotateY(0deg);
+  background:
+    radial-gradient(circle at top, color-mix(in oklab, var(--accent) 18%, transparent), transparent 42%),
+    color-mix(in oklab, var(--surface) 84%, white 16%);
+}
+
+.workspace-route .practice-card-face-back {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(circle at top, color-mix(in oklab, var(--foreground) 8%, transparent), transparent 42%),
+    color-mix(in oklab, var(--surface) 90%, white 10%);
+}
+
+.workspace-route .practice-card-prompt,
+.workspace-route .practice-card-response {
+  margin: 0;
+  width: 100%;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: clamp(1.65rem, 3vw, 2.45rem);
+  line-height: 1.18;
+  letter-spacing: -0.04em;
+  color: var(--foreground);
+}
+
+.workspace-route .practice-answer-label {
+  margin: 0;
+  color: var(--accent-strong);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.workspace-route .practice-answer-note {
+  margin: 0;
+  max-width: none;
+  color: var(--foreground-soft);
+  line-height: 1.72;
+}
+
+.workspace-route .practice-card-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.workspace-route .practice-card-nav,
+.workspace-route .practice-test-actions,
+.workspace-route .practice-rating-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.workspace-route .practice-rating-button {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.08rem;
+  min-width: 7rem;
+  min-height: 3.45rem;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+  padding: 0.45rem 1rem;
+  text-align: center;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.workspace-route .practice-rating-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+  box-shadow: 0 16px 35px -28px var(--shadow);
+}
+
+.workspace-route .practice-rating-button:disabled {
+  opacity: 0.46;
+}
+
+.workspace-route .practice-rating-button[data-rating="again"] {
+  background: #111111;
+  color: #ffffff;
+  border-color: #111111;
+}
+
+.workspace-route .practice-rating-button[data-rating="easy"] {
+  background: #ffffff;
+}
+
+.workspace-route .practice-rating-interval {
+  font-size: 0.88rem;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.workspace-route .practice-rating-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1.05;
+}
+
+.workspace-route .practice-rating-label svg {
+  width: 0.92rem;
+  height: 0.92rem;
+}
+
+.workspace-route .practice-empty-state {
+  display: grid;
+  place-items: center;
+  gap: 0.9rem;
+  min-height: 20rem;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 1.6rem;
+  background: color-mix(in oklab, var(--surface) 86%, white 14%);
+  padding: 2rem;
+  text-align: center;
+}
+
+.workspace-route .practice-empty-title {
+  margin: 0;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: clamp(1.6rem, 3vw, 2rem);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.workspace-route .practice-empty-copy {
+  margin: 0;
+  max-width: 28rem;
+  color: var(--foreground-soft);
+  line-height: 1.7;
+}
+
+.workspace-route .practice-progress {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.workspace-route .practice-progress-copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  color: var(--foreground-soft);
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+
+.workspace-route .practice-progress-track {
+  overflow: hidden;
+  height: 0.65rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-strong) 78%, transparent);
+}
+
+.workspace-route .practice-progress-bar {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-strong), color-mix(in oklab, var(--accent) 68%, white 32%));
+}
+
+.workspace-route .practice-test-panel {
+  display: grid;
+  gap: 1rem;
+}
+
+.workspace-route .practice-test-header h3,
+.workspace-route .practice-test-question h4,
+.workspace-route .practice-test-scorecard h4 {
+  margin: 0;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  letter-spacing: -0.03em;
+}
+
+.workspace-route .practice-test-header p,
+.workspace-route .practice-test-scorecard p,
+.workspace-route .practice-test-explanation {
+  margin: 0;
+  color: var(--foreground-soft);
+  line-height: 1.72;
+}
+
+.workspace-route .practice-test-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.workspace-route .practice-test-scorecard,
+.workspace-route .practice-test-question {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 1.35rem;
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+  padding: 1.1rem;
+}
+
+.workspace-route .practice-test-score-kicker,
+.workspace-route .practice-test-question-header span:first-child {
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  color: var(--foreground-soft);
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.workspace-route .practice-test-question-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.workspace-route .practice-test-options {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.workspace-route .practice-test-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8rem;
+  width: 100%;
+  border: 1px solid color-mix(in oklab, var(--border) 72%, transparent);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.55);
+  padding: 0.9rem 1rem;
+  color: var(--foreground);
+  text-align: left;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.workspace-route .practice-test-option:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+  box-shadow: 0 16px 32px -28px var(--shadow);
+}
+
+.workspace-route .practice-test-option.is-selected {
+  border-color: color-mix(in oklab, var(--accent-strong) 52%, transparent);
+  background: color-mix(in oklab, var(--accent) 18%, white 82%);
+}
+
+.workspace-route .practice-test-option.is-correct {
+  border-color: color-mix(in oklab, #15803d 55%, transparent);
+  background: color-mix(in oklab, #dcfce7 78%, white 22%);
+}
+
+.workspace-route .practice-test-option.is-incorrect {
+  border-color: color-mix(in oklab, #b91c1c 52%, transparent);
+  background: color-mix(in oklab, #fee2e2 72%, white 28%);
+}
+
+.workspace-route .practice-test-option-letter,
+.workspace-route .practice-test-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.workspace-route .practice-test-option-letter {
+  min-width: 1.7rem;
+  min-height: 1.7rem;
+  background: var(--foreground);
+  color: var(--background);
+}
+
+.workspace-route .practice-test-status {
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: 1.12rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--foreground-soft);
+  background: transparent;
+}
+
+.workspace-route .practice-test-status.is-correct {
+  color: var(--foreground-soft);
+}
+
+.workspace-route .practice-test-status.is-incorrect {
+  color: var(--foreground-soft);
+}
+
+@keyframes practiceCardSlideForward {
+  from {
+    opacity: 0;
+    transform: translate3d(28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes practiceCardSlideBackward {
+  from {
+    opacity: 0;
+    transform: translate3d(-28px, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workspace-route .workspace-canvas::after {
     display: none;
@@ -2475,6 +3160,14 @@ label[for],
   .workspace-route .course-edge-path-base.is-flowing-dotted,
   .workspace-route .course-edge-path-flow.is-flowing-solid {
     animation: none;
+  }
+
+  .workspace-route .practice-card-stage {
+    animation: none;
+  }
+
+  .workspace-route .practice-flip-card-inner {
+    transition: none;
   }
 }
 
@@ -2594,6 +3287,7 @@ label[for],
   }
 
   .workspace-route .sidebar-course-card,
+  .workspace-route .sidebar-top-slot,
   .workspace-route .sidebar-footer {
     display: none;
   }

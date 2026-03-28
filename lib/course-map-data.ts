@@ -20,6 +20,31 @@ export type CourseMapLesson = {
   }>;
   takeaways: string[];
   relatedSlugs: string[];
+  practiceDeck?: {
+    title: string;
+    summary: string;
+    estimatedMinutes: string;
+    focus: string;
+    cards: Array<{
+      id: string;
+      prompt: string;
+      answer: string;
+      hint: string;
+      note: string;
+      tag: string;
+    }>;
+  };
+  practiceTest?: {
+    title: string;
+    summary: string;
+    questions: Array<{
+      id: string;
+      prompt: string;
+      choices: string[];
+      correctChoice: number;
+      explanation: string;
+    }>;
+  };
 };
 
 export type CourseMapEdge = {
@@ -272,24 +297,208 @@ export const courseMapLessons: CourseMapLesson[] = [
     headline: "Turn raw programming into structured problem-solving.",
     intro:
       "Algorithms teach students to compare approaches, reason about tradeoffs, and express solutions as processes rather than isolated lines of code.",
-    sections: [
-      {
-        title: "How to think algorithmically",
-        body:
-          "Start from the goal, identify the repeated work, and ask what data must be remembered between steps. Good algorithms are usually clear before they are fast.",
-      },
-      {
-        title: "How to improve",
-        body:
-          "Students improve by tracing examples, naming invariants, and comparing two possible approaches instead of assuming the first solution is the best one.",
-      },
-    ],
+    sections: [],
     takeaways: [
       "An algorithm is a repeatable strategy, not just code.",
       "Tracing examples exposes hidden assumptions.",
       "Tradeoffs matter as much as correctness.",
     ],
     relatedSlugs: ["arrays", "conceptual-foundation"],
+    practiceDeck: {
+      title: "Algorithm flashcards",
+      summary:
+        "Practice the habits that make algorithm design feel methodical: define the goal, track state, and compare tradeoffs before coding.",
+      estimatedMinutes: "8 min",
+      focus: "Tracing and strategy",
+      cards: [
+        {
+          id: "goal",
+          tag: "Problem framing",
+          prompt: "What should you identify before choosing an algorithm?",
+          answer:
+            "Start with the goal, the repeated work, and the information that must persist between steps.",
+          hint: "Think about output, repetition, and memory.",
+          note:
+            "Students often jump into syntax too early. A clear target state makes the algorithm easier to evaluate.",
+        },
+        {
+          id: "clarity",
+          tag: "Design instinct",
+          prompt: "What usually matters before speed when designing a good algorithm?",
+          answer: "Clarity. Good algorithms are usually understandable before they are optimized.",
+          hint: "What makes the steps easy to trace?",
+          note:
+            "If a solution is hard to explain, it is usually too early to optimize it. Readability exposes weak reasoning.",
+        },
+        {
+          id: "tracing",
+          tag: "Practice method",
+          prompt: "Why is tracing a small example one of the fastest ways to improve?",
+          answer:
+            "Tracing reveals hidden assumptions, shows how state changes step by step, and exposes where the logic breaks.",
+          hint: "Focus on what changes after each move.",
+          note:
+            "A worked example turns abstract control flow into something visible. It also makes off-by-one and missing-case errors easier to catch.",
+        },
+        {
+          id: "invariants",
+          tag: "Reasoning tool",
+          prompt: "What is an invariant in algorithmic thinking?",
+          answer:
+            "An invariant is a property that stays true throughout execution and helps you reason about correctness.",
+          hint: "It is the statement you can keep checking after every step.",
+          note:
+            "Naming the invariant helps students explain why an algorithm works, not just what the next line of code does.",
+        },
+        {
+          id: "compare",
+          tag: "Tradeoffs",
+          prompt: "What should students compare instead of assuming the first approach is best?",
+          answer:
+            "They should compare at least two possible strategies and weigh correctness, repeated work, and resource costs.",
+          hint: "Think in alternatives, not single answers.",
+          note:
+            "Comparing strategies builds judgment. It trains students to notice that the same problem can admit multiple valid solutions.",
+        },
+      ],
+    },
+    practiceTest: {
+      title: "Algorithms quick check",
+      summary:
+        "Answer 10 multiple-choice questions covering tracing, invariants, repeated work, and algorithm tradeoffs.",
+      questions: [
+        {
+          id: "alg-test-1",
+          prompt: "What should you usually clarify before choosing an algorithm?",
+          choices: [
+            "The exact syntax you want to write first",
+            "The goal, repeated work, and what data must be remembered",
+            "Which language has the fastest compiler",
+            "How many comments the code will need",
+          ],
+          correctChoice: 1,
+          explanation:
+            "Strong algorithm design starts by clarifying the target, the repeated steps, and the state that must persist across those steps.",
+        },
+        {
+          id: "alg-test-2",
+          prompt: "Why do students trace small examples when learning algorithms?",
+          choices: [
+            "To avoid writing any code at all",
+            "To expose hidden assumptions and watch state change step by step",
+            "To memorize syntax faster",
+            "To guarantee the algorithm is optimal",
+          ],
+          correctChoice: 1,
+          explanation:
+            "Tracing makes control flow concrete and helps reveal mistakes in logic, ordering, or assumptions.",
+        },
+        {
+          id: "alg-test-3",
+          prompt: "Which statement best describes an invariant?",
+          choices: [
+            "A random guess about what might happen later",
+            "A property that remains true throughout execution",
+            "A shortcut used only in recursive code",
+            "A rule that only matters for sorting algorithms",
+          ],
+          correctChoice: 1,
+          explanation:
+            "An invariant is a property you can rely on at each step, which helps justify correctness.",
+        },
+        {
+          id: "alg-test-4",
+          prompt: "If two solutions are both correct, what should a student compare next?",
+          choices: [
+            "Tradeoffs such as repeated work, memory use, and clarity",
+            "Which solution has more lines",
+            "Which solution uses newer syntax",
+            "Which solution has more variables",
+          ],
+          correctChoice: 0,
+          explanation:
+            "Once correctness is established, algorithmic judgment comes from comparing tradeoffs like work, space, and maintainability.",
+        },
+        {
+          id: "alg-test-5",
+          prompt: "What does repeated work usually signal in a problem?",
+          choices: [
+            "That the problem cannot be solved",
+            "That there may be a pattern or reusable process worth formalizing",
+            "That the best answer is always brute force",
+            "That recursion is required",
+          ],
+          correctChoice: 1,
+          explanation:
+            "Repeated structure often points to the core loop, state update, or reusable strategy inside an algorithm.",
+        },
+        {
+          id: "alg-test-6",
+          prompt: "Why is clarity valuable before optimization?",
+          choices: [
+            "Because clear solutions are easier to reason about and debug",
+            "Because optimized algorithms never need explanation",
+            "Because clarity makes runtime irrelevant",
+            "Because the compiler only accepts readable code",
+          ],
+          correctChoice: 0,
+          explanation:
+            "If the logic is not yet clear, optimizing early usually hides mistakes rather than improving the solution.",
+        },
+        {
+          id: "alg-test-7",
+          prompt: "A student keeps changing code without checking examples. What are they most likely missing?",
+          choices: [
+            "A better font choice",
+            "A concrete feedback loop for validating the logic",
+            "A need for more comments",
+            "A larger input size",
+          ],
+          correctChoice: 1,
+          explanation:
+            "Examples and traces create the feedback loop that reveals whether the algorithm is behaving as intended.",
+        },
+        {
+          id: "alg-test-8",
+          prompt: "Which habit builds stronger algorithm intuition?",
+          choices: [
+            "Assuming the first idea is probably best",
+            "Comparing at least two possible approaches",
+            "Ignoring edge cases until later",
+            "Choosing the shortest code immediately",
+          ],
+          correctChoice: 1,
+          explanation:
+            "Comparing alternatives helps students see why one approach is better suited to the problem than another.",
+        },
+        {
+          id: "alg-test-9",
+          prompt: "What does it mean to think of an algorithm as a process instead of isolated code lines?",
+          choices: [
+            "You focus on how information changes over time to reach the goal",
+            "You avoid using functions",
+            "You write pseudocode only",
+            "You always choose loops over conditionals",
+          ],
+          correctChoice: 0,
+          explanation:
+            "Algorithmic thinking is about the full flow of steps and state transitions, not just individual statements.",
+        },
+        {
+          id: "alg-test-10",
+          prompt: "Which question best helps identify useful state in an algorithm?",
+          choices: [
+            "What information must be remembered between steps?",
+            "Which variable name looks nicest?",
+            "How many libraries can be imported?",
+            "Can this be written in fewer characters?",
+          ],
+          correctChoice: 0,
+          explanation:
+            "Remembered state is what lets each step build on the previous one without recomputing everything from scratch.",
+        },
+      ],
+    },
   },
   {
     slug: "memory",

@@ -130,6 +130,8 @@ export function WorkspaceShell({
           </button>
         </div>
 
+        {sidebarBottom ? <div className="sidebar-top-slot">{sidebarBottom}</div> : null}
+
         <nav className="sidebar-nav" aria-label="Primary">
           {sidebarItems.map((item) => {
             const isActive =
@@ -150,8 +152,6 @@ export function WorkspaceShell({
             );
           })}
         </nav>
-
-        {sidebarBottom ? <div key="sidebar-bottom">{sidebarBottom}</div> : null}
 
         {hasCourseWorkspace ? (
           <WorkspaceCourseSwitcher

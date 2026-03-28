@@ -22,6 +22,31 @@ export type CourseMapLesson = {
   }>;
   takeaways: string[];
   relatedSlugs: string[];
+  practiceDeck?: {
+    title: string;
+    summary: string;
+    estimatedMinutes: string;
+    focus: string;
+    cards: Array<{
+      id: string;
+      prompt: string;
+      answer: string;
+      hint: string;
+      note: string;
+      tag: string;
+    }>;
+  };
+  practiceTest?: {
+    title: string;
+    summary: string;
+    questions: Array<{
+      id: string;
+      prompt: string;
+      choices: string[];
+      correctChoice: number;
+      explanation: string;
+    }>;
+  };
 };
 
 export type CourseMapEdge = {
