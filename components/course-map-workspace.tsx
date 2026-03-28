@@ -14,7 +14,6 @@ import ReactFlow, {
   ConnectionLineType,
   getSmoothStepPath,
   Handle,
-  MarkerType,
   Position,
   ReactFlowProvider,
   useNodesState,
@@ -39,8 +38,8 @@ type GraphNodeData = CourseMapNode & {
 };
 
 type GraphEdgeData = {
-  animated: boolean;
   className: string;
+  flowVariant: "none" | "dotted" | "solid";
 };
 
 type HandleId =
@@ -135,10 +134,22 @@ function AnimatedCourseEdge({
         id={id}
         d={edgePath}
         fill="none"
-        className={data?.animated ? "course-edge-path-base is-flowing" : "course-edge-path-base"}
+        className={
+          data?.flowVariant === "dotted"
+            ? "course-edge-path-base is-flowing-dotted"
+            : "course-edge-path-base"
+        }
         markerEnd={markerEnd}
         style={style}
       />
+      {data?.flowVariant === "solid" ? (
+        <path
+          d={edgePath}
+          fill="none"
+          pathLength={100}
+          className="course-edge-path-flow is-flowing-solid"
+        />
+      ) : null}
     </g>
   );
 }
@@ -319,9 +330,7 @@ function MapCanvas() {
         type: "course",
         sourceHandle,
         targetHandle,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 14, height: 14 },
         data: {
-          animated: directlyConnected,
           className: [
             "course-edge",
             "is-visible",
@@ -331,6 +340,7 @@ function MapCanvas() {
           ]
             .filter(Boolean)
             .join(" "),
+          flowVariant: directlyDownstream ? "solid" : directlyUpstream ? "dotted" : "none",
         },
         style: {
           stroke:
@@ -339,8 +349,16 @@ function MapCanvas() {
               : active
                 ? "rgba(122, 103, 71, 0.66)"
                 : "rgba(122, 103, 71, 0.44)",
-          strokeWidth: directlyConnected ? 3.2 : active || emphasizedBySearch ? 2.4 : 2,
-          strokeDasharray: directlyConnected ? undefined : active || emphasizedBySearch ? "5 9" : "4 8",
+          strokeWidth:
+            directlyDownstream ? 3.35 : directlyUpstream ? 3.05 : active || emphasizedBySearch ? 2.4 : 2,
+          strokeDasharray:
+            directlyDownstream
+              ? undefined
+              : directlyUpstream
+                ? "7 11"
+                : active || emphasizedBySearch
+                  ? "5 9"
+                  : "4 8",
         },
         labelStyle: {
           fill: "rgba(122, 103, 71, 0.65)",

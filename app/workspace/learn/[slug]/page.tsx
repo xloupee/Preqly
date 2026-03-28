@@ -1,10 +1,12 @@
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Compass } from "lucide-react";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { CourseMapMinimap } from "@/components/course-map-minimap";
 import { WorkspaceShell } from "@/components/workspace-shell";
+import { DEMO_CLASS_RECORD } from "@/lib/class-record";
+import { listClassesForCurrentUser } from "@/lib/classes";
 import {
   courseMapLessons,
   getCourseLessonBySlug,
@@ -25,10 +27,18 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
   const { slug } = await params;
   const lesson = getCourseLessonBySlug(slug);
   const node = getCourseNodeBySlug(slug);
+  const { user, classes, schemaReady, schemaMessage } = await listClassesForCurrentUser();
 
   if (!lesson || !node) {
     notFound();
   }
+
+  if (!user) {
+    redirect("/auth");
+  }
+
+  const effectiveClasses = classes.length > 0 ? classes : [DEMO_CLASS_RECORD];
+  const activeClass = effectiveClasses[0] ?? DEMO_CLASS_RECORD;
 
   const relatedTopics = lesson.relatedSlugs
     .map((relatedSlug) => getCourseNodeBySlug(relatedSlug))
@@ -37,7 +47,14 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
   return (
     <main className="workspace-route">
       <section className="course-hero">
-        <WorkspaceShell sidebarBottom={<CourseMapMinimap activeSlug={node.slug} />}>
+        <WorkspaceShell
+          classes={effectiveClasses}
+          activeClass={activeClass}
+          classesEnabled={schemaReady}
+          classesMessage={schemaMessage}
+          userEmail={user.email}
+          sidebarBottom={<CourseMapMinimap activeSlug={node.slug} />}
+        >
           <section className="workspace-canvas-panel learn-panel" aria-label={`Learn more about ${node.label}`}>
             <div className="learn-page">
               <div className="learn-page-actions">

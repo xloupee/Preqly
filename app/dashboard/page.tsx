@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowUpRight, Compass, FileClock, Layers3, Sparkles } from "lucide-react";
+import { ArrowUpRight, Compass, FileClock, Layers3 } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { DEMO_CLASS_RECORD, getClassStatusLabel } from "@/lib/class-record";
 import { listClassesForCurrentUser } from "@/lib/classes";
@@ -81,7 +82,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                 </div>
                 <Button asChild size="sm">
                   <Link href="/workspace">
-                    <Sparkles aria-hidden="true" />
+                    <BrandLogo size={16} className="inline-brand-logo" />
                     Add class
                   </Link>
                 </Button>
@@ -195,7 +196,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
                         <span>Upload another syllabus to expand the cross-class view.</span>
                       </div>
                       <div className="dashboard-next-step">
-                        <Sparkles aria-hidden="true" />
+                        <BrandLogo size={18} className="dashboard-step-logo" />
                         <span>Use the dashboard as the top-level view, then dive into a class workspace.</span>
                       </div>
                     </div>

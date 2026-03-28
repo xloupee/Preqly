@@ -1,6 +1,6 @@
 import Image from "next/image";
 
-import logo from "@/logo.png";
+import logo from "@/Gemini_Generated_Image_3vx1lr3vx1lr3vx1.png";
 
 type BrandLogoProps = {
   size?: number;

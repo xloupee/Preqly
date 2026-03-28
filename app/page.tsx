@@ -1,4 +1,4 @@
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,7 @@ export default function Home() {
       <section className="hero">
         <div className="hero-copy">
           <p className="eyebrow">
-            <Sparkles aria-hidden="true" />
+            <BrandLogo size={18} className="inline-brand-logo" />
             Live lecture intelligence
           </p>
           <h1 className="wordmark">preqly</h1>
