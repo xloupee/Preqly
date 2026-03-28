@@ -142,7 +142,7 @@ export function WorkspaceCourseSwitcher({
       <div className="sidebar-class-header">
         <div>
           <p className="sidebar-course-label">My courses</p>
-          <p className="sidebar-class-subtitle">Switch between generated course maps.</p>
+          <p className="sidebar-class-subtitle">Switch between courses.</p>
         </div>
         <button
           type="button"
