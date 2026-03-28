@@ -12,10 +12,9 @@ const courseSections = ["Summary", "Versions", "Notes"];
 
 type WorkspaceShellProps = {
   children: ReactNode;
-  sidebarBottom?: ReactNode;
 };
 
-export function WorkspaceShell({ children, sidebarBottom }: WorkspaceShellProps) {
+export function WorkspaceShell({ children }: WorkspaceShellProps) {
   return (
     <div className="workspace-shell">
       <aside className="workspace-sidebar">
@@ -56,8 +55,6 @@ export function WorkspaceShell({ children, sidebarBottom }: WorkspaceShellProps)
             ))}
           </div>
         </section>
-
-        {sidebarBottom}
 
         <div className="sidebar-footer">
           <button className="sidebar-link" type="button">
