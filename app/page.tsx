@@ -1,9 +1,35 @@
 import { ArrowDownRight, Compass, Sparkles } from "lucide-react";
 
+import { AuthPanel } from "@/components/auth/auth-panel";
 import { Button } from "@/components/ui/button";
+import { createClient } from "@/lib/supabase/server";
 import { SyllabusUpload } from "@/components/syllabus-upload";
 
-export default function Home() {
+const partners = ["Zoom", "Canvas", "AI", "Stanford", "Berkeley", "Cal"];
+
+type HomeProps = {
+  searchParams?: Promise<{
+    auth?: string;
+  }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const params = await searchParams;
+  const authStatus = params?.auth ?? null;
+  let userEmail: string | null = null;
+
+  if (
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+  ) {
+    const supabase = await createClient();
+    const {
+      data: { user }
+    } = await supabase.auth.getUser();
+
+    userEmail = user?.email ?? null;
+  }
+
   return (
     <main className="landing-page">
       <div className="ambient ambient-left" />
@@ -53,6 +79,29 @@ export default function Home() {
             Follow-up prompts
           </div>
         </div>
+      </section>
+
+      <section className="compatibility">
+        <p className="compatibility-label">Works with</p>
+        <div className="compatibility-strip">
+          {partners.map((partner) => (
+            <span className="partner-pill" key={partner}>
+              {partner}
+            </span>
+          ))}
+        </div>
+      </section>
+
+      <section className="waitlist-section" id="waitlist">
+        <div className="waitlist-copy">
+          <p className="section-kicker">Early access</p>
+          <h2>Create your Preqly account and keep the workspace within reach.</h2>
+          <p>
+            Sign up or log in from the landing page, then move into the workspace
+            when you want to explore the course map and syllabus upload flow.
+          </p>
+        </div>
+        <AuthPanel authStatus={authStatus} userEmail={userEmail} />
       </section>
     </main>
   );

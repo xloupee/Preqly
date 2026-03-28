@@ -1,0 +1,2 @@
+-- Seed data placeholder.
+-- Add INSERT statements here when the schema is ready.
