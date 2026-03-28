@@ -17,9 +17,12 @@ import ReactFlow, {
 
 import "reactflow/dist/style.css";
 
-import { courseMapEdges, courseMapNodes } from "@/lib/course-map-data";
+import type { CourseMapNode, CourseMapEdge } from "@/lib/course-types";
 
 type CourseMapMinimapProps = {
+  courseSlug: string;
+  nodes: CourseMapNode[];
+  edges: CourseMapEdge[];
   activeSlug?: string;
 };
 
@@ -77,14 +80,19 @@ function pickHandles(source: { x: number; y: number }, target: { x: number; y: n
   return { sourceHandle: "left-source" as HandleId, targetHandle: "right-target" as HandleId };
 }
 
-function CourseMapMinimapCanvas({ activeSlug }: CourseMapMinimapProps) {
+function CourseMapMinimapCanvas({
+  courseSlug,
+  nodes: courseNodes,
+  edges: courseEdges,
+  activeSlug,
+}: CourseMapMinimapProps) {
   const router = useRouter();
   const graphApi = useReactFlow<MinimapNodeData>();
   const nodesInitialized = useNodesInitialized();
 
   const nodes = useMemo<Node<MinimapNodeData>[]>(
     () =>
-      courseMapNodes.map((node) => ({
+      courseNodes.map((node) => ({
         id: node.id,
         type: "minimap",
         draggable: false,
@@ -95,53 +103,54 @@ function CourseMapMinimapCanvas({ activeSlug }: CourseMapMinimapProps) {
           active: node.slug === activeSlug,
         },
       })),
-    [activeSlug],
+    [courseNodes, activeSlug],
   );
 
-  const edges = useMemo<Edge[]>(
-    () => {
-      const nodeLookup = Object.fromEntries(courseMapNodes.map((node) => [node.id, node]));
+  const edges = useMemo<Edge[]>(() => {
+    const nodeLookup = Object.fromEntries(
+      courseNodes.map((node) => [node.id, node]),
+    );
 
-      return courseMapEdges.map((edge) => {
-        const sourceNode = nodeLookup[edge.source];
-        const targetNode = nodeLookup[edge.target];
-        const { sourceHandle, targetHandle } =
-          sourceNode && targetNode
-            ? pickHandles(sourceNode.position, targetNode.position)
-            : {
-                sourceHandle: "bottom-source" as HandleId,
-                targetHandle: "top-target" as HandleId,
-              };
+    return courseEdges.map((edge) => {
+      const sourceNode = nodeLookup[edge.source];
+      const targetNode = nodeLookup[edge.target];
+      const { sourceHandle, targetHandle } =
+        sourceNode && targetNode
+          ? pickHandles(sourceNode.position, targetNode.position)
+          : {
+              sourceHandle: "bottom-source" as HandleId,
+              targetHandle: "top-target" as HandleId,
+            };
 
-        return {
-          ...edge,
-          type: "smoothstep",
-          sourceHandle,
-          targetHandle,
-          markerEnd: {
-            type: MarkerType.ArrowClosed,
-            width: 15,
-            height: 15,
-            color: "rgba(105, 87, 56, 1)",
-          },
-          style: {
-            stroke: "rgba(105, 87, 56, 0.72)",
-            strokeWidth: 2.2,
-            strokeLinecap: "round",
-            strokeDasharray: "5 8",
-          },
-        };
-      });
-    },
-    [],
-  );
+      return {
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        type: "smoothstep",
+        sourceHandle,
+        targetHandle,
+        markerEnd: {
+          type: MarkerType.ArrowClosed,
+          width: 15,
+          height: 15,
+          color: "rgba(105, 87, 56, 1)",
+        },
+        style: {
+          stroke: "rgba(105, 87, 56, 0.72)",
+          strokeWidth: 2.2,
+          strokeLinecap: "round",
+          strokeDasharray: "5 8",
+        },
+      };
+    });
+  }, [courseNodes, courseEdges]);
 
   useEffect(() => {
     if (!nodesInitialized) {
       return;
     }
 
-    const activeNode = courseMapNodes.find((node) => node.slug === activeSlug);
+    const activeNode = courseNodes.find((node) => node.slug === activeSlug);
     if (!activeNode) {
       return;
     }
@@ -154,7 +163,7 @@ function CourseMapMinimapCanvas({ activeSlug }: CourseMapMinimapProps) {
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [activeSlug, graphApi, nodesInitialized]);
+  }, [activeSlug, courseNodes, graphApi, nodesInitialized]);
 
   return (
     <section className="sidebar-minimap-card" aria-label="Course minimap">
@@ -188,9 +197,9 @@ function CourseMapMinimapCanvas({ activeSlug }: CourseMapMinimapProps) {
               style: { strokeLinecap: "round" },
             }}
             onNodeClick={(_, node) => {
-              const clicked = courseMapNodes.find((courseNode) => courseNode.id === node.id);
+              const clicked = courseNodes.find((courseNode) => courseNode.id === node.id);
               if (clicked) {
-                router.push(`/workspace/learn/${clicked.slug}`);
+                router.push(`/workspace/${courseSlug}/learn/${clicked.slug}`);
               }
             }}
           />
@@ -200,10 +209,10 @@ function CourseMapMinimapCanvas({ activeSlug }: CourseMapMinimapProps) {
   );
 }
 
-export function CourseMapMinimap({ activeSlug }: CourseMapMinimapProps) {
+export function CourseMapMinimap(props: CourseMapMinimapProps) {
   return (
     <ReactFlowProvider>
-      <CourseMapMinimapCanvas activeSlug={activeSlug} />
+      <CourseMapMinimapCanvas {...props} />
     </ReactFlowProvider>
   );
 }

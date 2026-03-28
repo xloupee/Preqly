@@ -2454,6 +2454,7 @@ label[for],
 
 .workspace-route .learn-panel {
   min-width: 0;
+  overflow-y: auto;
 }
 
 .workspace-route .learn-page {
