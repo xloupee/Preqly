@@ -5,6 +5,7 @@ import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   ArrowUpRight,
+  Check,
   Database,
   LoaderCircle,
   Minus,
@@ -34,6 +35,7 @@ import type { MapLayoutPositions } from "@/lib/map-layouts";
 
 type GraphNodeData = CourseMapNode & {
   active: boolean;
+  completed: boolean;
   connected: boolean;
   dimmed: boolean;
   matched: boolean;
@@ -86,6 +88,7 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
       className={[
         "course-node",
         data.active ? "is-active" : "",
+        data.completed ? "is-completed" : "",
         data.connected ? "is-connected" : "",
         data.dimmed ? "is-dimmed" : "",
         data.matched ? "is-matched" : "",
@@ -103,6 +106,11 @@ function CourseNode({ data }: NodeProps<GraphNodeData>) {
       <Handle className="course-node-handle" id="bottom-target" type="target" position={Position.Bottom} />
       <Handle className="course-node-handle" id="left-source" type="source" position={Position.Left} />
       <Handle className="course-node-handle" id="left-target" type="target" position={Position.Left} />
+      {data.completed ? (
+        <span className="course-node-complete-mark" aria-label="Completed topic">
+          <Check aria-hidden="true" />
+        </span>
+      ) : null}
       <p className="course-node-track">{data.track}</p>
       <h3>{data.label}</h3>
     </article>
@@ -168,8 +176,11 @@ const edgeTypes = {
 type CourseMapWorkspaceProps = {
   mapKey: string | null;
   initialLayoutPositions?: MapLayoutPositions;
+  initialCompletedNodeIds?: string[];
   layoutPersistenceEnabled?: boolean;
   layoutMessage?: string | null;
+  progressPersistenceEnabled?: boolean;
+  progressMessage?: string | null;
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
@@ -204,6 +215,7 @@ function buildInitialNodes(initialLayoutPositions: MapLayoutPositions = {}): Nod
     data: {
       ...node,
       active: node.id === "foundation",
+      completed: false,
       connected: false,
       dimmed: false,
       matched: false,
@@ -254,8 +266,11 @@ function getDefaultPositions(): MapLayoutPositions {
 function MapCanvas({
   mapKey,
   initialLayoutPositions = {},
+  initialCompletedNodeIds = [],
   layoutPersistenceEnabled = true,
   layoutMessage = null,
+  progressPersistenceEnabled = true,
+  progressMessage = null,
 }: CourseMapWorkspaceProps) {
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
@@ -264,6 +279,11 @@ function MapCanvas({
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(layoutPersistenceEnabled ? null : layoutMessage);
+  const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(initialCompletedNodeIds);
+  const [isSavingProgress, setIsSavingProgress] = useState(false);
+  const [progressErrorMessage, setProgressErrorMessage] = useState<string | null>(
+    progressPersistenceEnabled ? null : progressMessage,
+  );
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(
     buildInitialNodes(initialLayoutPositions),
   );
@@ -277,6 +297,8 @@ function MapCanvas({
   const connectedIds = useMemo(() => collectConnectedNodeIds(selectedId), [selectedId]);
   const adjacentIds = useMemo(() => collectAdjacentNodeIds(selectedId), [selectedId]);
   const positionSnapshot = useMemo(() => buildPositionSnapshot(nodes), [nodes]);
+  const completedNodeIdSet = useMemo(() => new Set(completedNodeIds), [completedNodeIds]);
+  const completedCount = completedNodeIds.length;
 
   useEffect(() => {
     const nextNodes = buildInitialNodes(initialLayoutPositions);
@@ -289,6 +311,12 @@ function MapCanvas({
     setSaveState("idle");
     setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
   }, [initialLayoutPositions, layoutMessage, layoutPersistenceEnabled, mapKey, setNodes]);
+
+  useEffect(() => {
+    setCompletedNodeIds(initialCompletedNodeIds);
+    setIsSavingProgress(false);
+    setProgressErrorMessage(progressPersistenceEnabled ? null : progressMessage);
+  }, [initialCompletedNodeIds, mapKey, progressMessage, progressPersistenceEnabled]);
 
   useEffect(() => {
     return () => {
@@ -427,6 +455,7 @@ function MapCanvas({
           data: {
             ...source,
             active,
+            completed: completedNodeIdSet.has(node.id),
             connected,
             matched,
             relation,
@@ -435,7 +464,7 @@ function MapCanvas({
         };
       }),
     );
-  }, [adjacentIds.downstream, adjacentIds.upstream, connectedIds, matchedIds, selectedId, setNodes]);
+  }, [adjacentIds.downstream, adjacentIds.upstream, completedNodeIdSet, connectedIds, matchedIds, selectedId, setNodes]);
 
   const nodeLookup = useMemo(
     () => Object.fromEntries(nodes.map((node) => [node.id, node])),
@@ -507,6 +536,7 @@ function MapCanvas({
   }, [connectedIds, matchedIds, nodeLookup, selectedId]);
 
   const selectedNode = courseMapNodes.find((node) => node.id === selectedId) ?? courseMapNodes[0];
+  const isSelectedNodeCompleted = completedNodeIdSet.has(selectedNode.id);
 
   const handleCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const canvas = canvasRef.current;
@@ -566,6 +596,46 @@ function MapCanvas({
     } catch (error) {
       setSaveState("error");
       setSaveMessage(error instanceof Error ? error.message : "We could not reset your layout.");
+    }
+  };
+
+  const handleToggleNodeDone = async () => {
+    if (!mapKey || !progressPersistenceEnabled) {
+      setProgressErrorMessage(progressMessage ?? "Node progress is not available yet.");
+      return;
+    }
+
+    const nodeId = selectedNode.id;
+    const wasCompleted = completedNodeIdSet.has(nodeId);
+    const nextCompletedNodeIds = wasCompleted
+      ? completedNodeIds.filter((id) => id !== nodeId)
+      : [...completedNodeIds, nodeId];
+
+    setCompletedNodeIds(nextCompletedNodeIds);
+    setIsSavingProgress(true);
+    setProgressErrorMessage(null);
+
+    try {
+      const response = await fetch("/api/node-progress", {
+        method: wasCompleted ? "DELETE" : "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapKey,
+          nodeId,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "We could not update node progress.");
+      }
+    } catch (error) {
+      setCompletedNodeIds(completedNodeIds);
+      setProgressErrorMessage(error instanceof Error ? error.message : "We could not update node progress.");
+    } finally {
+      setIsSavingProgress(false);
     }
   };
 
@@ -649,6 +719,9 @@ function MapCanvas({
             <span className="node-status-chip node-status-chip-muted">
               {connectedIds.size} linked topics
             </span>
+            <span className={`node-status-chip ${isSelectedNodeCompleted ? "node-status-chip-complete" : "node-status-chip-muted"}`}>
+              {completedCount} / {courseMapNodes.length} done
+            </span>
           </div>
           <div className="node-outcomes">
             {selectedNode.outcomes.map((outcome) => (
@@ -662,7 +735,29 @@ function MapCanvas({
             <Button asChild size="sm">
               <Link href={`/workspace/learn/${selectedNode.slug}`}>Learn</Link>
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={isSelectedNodeCompleted ? "secondary" : "default"}
+              onClick={handleToggleNodeDone}
+              disabled={!progressPersistenceEnabled || isSavingProgress}
+            >
+              {isSavingProgress ? (
+                <>
+                  <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                  Saving
+                </>
+              ) : isSelectedNodeCompleted ? (
+                <>
+                  <Check aria-hidden="true" />
+                  Marked done
+                </>
+              ) : (
+                "Mark done"
+              )}
+            </Button>
           </div>
+          {progressErrorMessage ? <p className="node-detail-feedback">{progressErrorMessage}</p> : null}
         </aside>
 
         <div className="canvas-caption">

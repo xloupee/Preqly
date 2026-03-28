@@ -6,6 +6,7 @@ import { WorkspaceShell } from "@/components/workspace-shell";
 import { DEMO_CLASS_RECORD } from "@/lib/class-record";
 import { listClassesForCurrentUser } from "@/lib/classes";
 import { getMapKeyForClass, loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
+import { loadNodeProgressForCurrentUser } from "@/lib/node-progress";
 
 type WorkspacePageProps = {
   searchParams?: Promise<{
@@ -33,6 +34,11 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
     schemaReady: layoutSchemaReady,
     schemaMessage: layoutSchemaMessage,
   } = await loadMapLayoutForCurrentUser(mapKey);
+  const {
+    completedNodeIds: initialCompletedNodeIds,
+    schemaReady: progressSchemaReady,
+    schemaMessage: progressSchemaMessage,
+  } = await loadNodeProgressForCurrentUser(mapKey);
 
   return (
     <main className="workspace-route">
@@ -50,6 +56,9 @@ export default async function WorkspacePage({ searchParams }: WorkspacePageProps
               initialLayoutPositions={initialLayoutPositions}
               layoutPersistenceEnabled={layoutSchemaReady}
               layoutMessage={layoutSchemaMessage}
+              initialCompletedNodeIds={initialCompletedNodeIds}
+              progressPersistenceEnabled={progressSchemaReady}
+              progressMessage={progressSchemaMessage}
             />
           ) : (
             <WorkspaceClassState activeClass={activeClass} schemaReady={schemaReady} schemaMessage={schemaMessage} />
