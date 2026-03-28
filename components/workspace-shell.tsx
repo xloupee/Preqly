@@ -152,6 +152,8 @@ export function WorkspaceShell({
           })}
         </nav>
 
+        {sidebarBottom ? <div key="sidebar-bottom">{sidebarBottom}</div> : null}
+
         {hasCourseWorkspace ? (
           <WorkspaceCourseSwitcher
             courses={courses}
@@ -177,8 +179,6 @@ export function WorkspaceShell({
             </div>
           </section>
         )}
-
-        {sidebarBottom}
 
         <div className="sidebar-footer">
           <button

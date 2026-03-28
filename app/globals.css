@@ -818,6 +818,7 @@ label[for],
   flex-direction: column;
   gap: 1.4rem;
   min-height: 0;
+  overflow-y: auto;
   border-right: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent 25%),
