@@ -113,3 +113,68 @@ export async function POST(request: Request) {
     class: mapClassRow(data as ClassRow) satisfies ClassRecord,
   });
 }
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to remove a class." }, { status: 401 });
+  }
+
+  const body = (await request.json().catch(() => null)) as { classId?: unknown } | null;
+  const classId = typeof body?.classId === "string" ? body.classId.trim() : "";
+
+  if (!classId) {
+    return NextResponse.json({ error: "Provide a class to remove." }, { status: 400 });
+  }
+
+  const { data: existingClass, error: selectError } = await supabase
+    .from("classes")
+    .select("id, user_id, title, syllabus_path, syllabus_filename, status, created_at, updated_at")
+    .eq("id", classId)
+    .single();
+
+  if (selectError) {
+    if (isMissingStorageOrSchema(selectError.message)) {
+      return NextResponse.json(
+        { error: "Run the latest Supabase migration to enable class storage." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({ error: "We could not find that class." }, { status: 404 });
+  }
+
+  const classRecord = existingClass as ClassRow;
+
+  if (classRecord.user_id !== user.id) {
+    return NextResponse.json({ error: "You do not have access to this class." }, { status: 403 });
+  }
+
+  const mapKey = `class:${classRecord.id}`;
+
+  const { error: deleteError } = await supabase.from("classes").delete().eq("id", classRecord.id);
+
+  if (deleteError) {
+    if (isMissingStorageOrSchema(deleteError.message)) {
+      return NextResponse.json(
+        { error: "Run the latest Supabase migration to enable class storage." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({ error: "We could not remove this class." }, { status: 500 });
+  }
+
+  if (classRecord.syllabus_path) {
+    await supabase.storage.from("syllabi").remove([classRecord.syllabus_path]);
+  }
+
+  await supabase.from("map_layouts").delete().eq("map_key", mapKey);
+  await supabase.from("node_progress").delete().eq("map_key", mapKey);
+
+  return NextResponse.json({ ok: true, classId: classRecord.id });
+}
