@@ -2,8 +2,10 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Compass } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
+import { PracticeFlashcards } from "@/components/learn/practice-flashcards";
 import { Button } from "@/components/ui/button";
 import { CourseMapMinimap } from "@/components/course-map-minimap";
+import { getCourseLessonBySlug } from "@/lib/course-map-data";
 import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { createClient } from "@/lib/supabase/server";
@@ -34,12 +36,26 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
 
   const lesson = course.lessons.find((entry) => entry.slug === topicSlug);
   const node = course.nodes.find((entry) => entry.slug === topicSlug);
+  const seededLesson = getCourseLessonBySlug(topicSlug);
+  const placeholderPracticeLesson = getCourseLessonBySlug("algorithms");
 
   if (!lesson || !node) {
     notFound();
   }
 
-  const relatedTopics = lesson.relatedSlugs
+  const lessonWithPractice = {
+    ...lesson,
+    practiceDeck:
+      lesson.practiceDeck ??
+      seededLesson?.practiceDeck ??
+      placeholderPracticeLesson?.practiceDeck,
+    practiceTest:
+      lesson.practiceTest ??
+      seededLesson?.practiceTest ??
+      placeholderPracticeLesson?.practiceTest,
+  };
+
+  const relatedTopics = lessonWithPractice.relatedSlugs
     .map((relatedSlug) =>
       course.nodes.find((courseNode) => courseNode.slug === relatedSlug),
     )
@@ -82,25 +98,18 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
               <header className="learn-page-header">
                 <p className="learn-page-kicker">{node.duration}</p>
                 <h1>{node.label}</h1>
-                <p className="learn-page-headline">{lesson.headline}</p>
-                <p className="learn-page-intro">{lesson.intro}</p>
+                <p className="learn-page-headline">{lessonWithPractice.headline}</p>
+                <p className="learn-page-intro">{lessonWithPractice.intro}</p>
               </header>
 
               <div className="learn-page-grid">
-                <article className="learn-content-card">
-                  {lesson.sections.map((section) => (
-                    <section key={section.title} className="learn-section">
-                      <h2>{section.title}</h2>
-                      <p>{section.body}</p>
-                    </section>
-                  ))}
-                </article>
+                <PracticeFlashcards lesson={lessonWithPractice} />
 
                 <aside className="learn-sidebar-card">
                   <div>
                     <p className="learn-sidebar-label">Key takeaways</p>
                     <div className="learn-takeaways">
-                      {lesson.takeaways.map((takeaway) => (
+                      {lessonWithPractice.takeaways.map((takeaway) => (
                         <div key={takeaway} className="learn-takeaway">
                           <ArrowUpRight aria-hidden="true" />
                           <span>{takeaway}</span>
