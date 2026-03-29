@@ -981,10 +981,16 @@ label[for],
   background: color-mix(in oklab, var(--surface) 90%, white 10%);
   padding: 0.55rem 0.8rem;
   color: var(--foreground-soft);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
   transition:
     border-color 180ms ease,
     background-color 180ms ease,
@@ -1270,6 +1276,19 @@ label[for],
 
 .workspace-route .sidebar-minimap-search input::placeholder {
   color: var(--foreground-muted);
+}
+
+.workspace-route .sidebar-minimap-search input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 4l8 8M12 4L4 12' stroke='%23614f36' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.9;
 }
 
 .workspace-route .sidebar-minimap-flow {

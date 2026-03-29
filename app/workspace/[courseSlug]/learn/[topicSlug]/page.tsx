@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { CourseMapMinimap } from "@/components/course-map-minimap";
 import { getCourseLessonBySlug } from "@/lib/course-map-data";
 import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
+import { loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { createClient } from "@/lib/supabase/server";
 
@@ -43,6 +44,14 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
     notFound();
   }
 
+  const mapKey = `course:${course.slug}`;
+  const { positions: initialLayoutPositions } =
+    await loadMapLayoutForCurrentUser(mapKey);
+  const minimapNodes = course.nodes.map((courseNode) => ({
+    ...courseNode,
+    position: initialLayoutPositions[courseNode.id] ?? courseNode.position,
+  }));
+
   const lessonWithPractice = {
     ...lesson,
     practiceDeck:
@@ -71,7 +80,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
           sidebarBottom={
             <CourseMapMinimap
               courseSlug={course.slug}
-              nodes={course.nodes}
+              nodes={minimapNodes}
               edges={course.edges}
               activeSlug={topicSlug}
             />
