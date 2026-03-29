@@ -284,6 +284,9 @@ function CourseMapMinimapCanvas({
   }, [activeSlug, courseNodes, graphApi, nodesInitialized, normalizedQuery, rankedMatches]);
 
   const handleExpandToMap = () => {
+    const pushDelayMs = 430;
+    const overlaySettleDelayMs = 1550;
+    const overlayCleanupDelayMs = 1880;
     const focusedSlug =
       (normalizedQuery && rankedMatches.length > 0
         ? courseNodes.find((node) => node.id === rankedMatches[0]?.id)?.slug
@@ -328,12 +331,16 @@ function CourseMapMinimapCanvas({
 
     window.setTimeout(() => {
       router.push(destination);
-    }, 430);
+    }, pushDelayMs);
+
+    window.setTimeout(() => {
+      overlay.classList.add("is-settling");
+    }, overlaySettleDelayMs);
 
     window.setTimeout(() => {
       overlay.remove();
       document.documentElement.classList.remove("is-minimap-expanding");
-    }, 1200);
+    }, overlayCleanupDelayMs);
   };
 
   return (

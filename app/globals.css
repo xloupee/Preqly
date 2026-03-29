@@ -3477,11 +3477,12 @@ label[for],
   overflow: hidden;
   border-radius: 1.1rem;
   pointer-events: none;
+  opacity: 1;
   background:
-    radial-gradient(circle at center, rgba(166, 146, 105, 0.16) 0 1.05px, transparent 1.2px),
-    radial-gradient(circle at center, rgba(255, 255, 255, 0.34) 0 0.6px, transparent 0.8px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.44), transparent 18%),
-    color-mix(in oklab, var(--surface) 86%, white 14%);
+    radial-gradient(circle at center, rgba(166, 146, 105, 0.18) 0 1.05px, transparent 1.2px),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.24) 0 0.6px, transparent 0.8px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08) 16%, transparent 32%),
+    oklch(0.97 0.013 90 / 0.98);
   box-shadow:
     0 32px 64px -42px rgba(0, 0, 0, 0.34),
     inset 0 1px 0 rgba(255, 255, 255, 0.48);
@@ -3492,7 +3493,8 @@ label[for],
     width 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
     height 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
     border-radius 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
-    box-shadow 620ms cubic-bezier(0.2, 0.82, 0.2, 1);
+    box-shadow 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    opacity 260ms ease;
 }
 
 .minimap-expand-transition.is-active {
@@ -3522,6 +3524,15 @@ label[for],
     scale(1.08);
   filter: blur(10px) saturate(1.08);
   opacity: 0.8;
+}
+
+.minimap-expand-transition.is-settling {
+  opacity: 0;
+}
+
+.minimap-expand-transition.is-settling .minimap-expand-transition-content {
+  filter: blur(14px) saturate(1.02);
+  opacity: 0;
 }
 
 .is-minimap-expanding .workspace-route {
