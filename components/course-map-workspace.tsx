@@ -1550,6 +1550,100 @@ function MapCanvas({
           onPointerMove={handleCanvasPointerMove}
           onPointerLeave={handleCanvasPointerLeave}
         >
+          <div
+            ref={actionsMenuRef}
+            className={`graph-actions-corner${isActionsMenuOpen ? " is-open" : ""}`}
+          >
+            <button
+              type="button"
+              className="graph-control-button graph-control-menu"
+              aria-label="Open canvas actions"
+              aria-expanded={isActionsMenuOpen}
+              onClick={() => setIsActionsMenuOpen((current) => !current)}
+            >
+              <Menu aria-hidden="true" />
+            </button>
+
+            {isActionsMenuOpen ? (
+              <div className="graph-actions-dropdown" role="menu" aria-label="Canvas actions">
+                <button
+                  type="button"
+                  className="graph-actions-dropdown-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsHistoryModalOpen(true);
+                    setIsActionsMenuOpen(false);
+                  }}
+                  disabled={!graphPersistenceEnabled}
+                >
+                  <History aria-hidden="true" />
+                  <span>History</span>
+                </button>
+                <button
+                  type="button"
+                  className="graph-actions-dropdown-item"
+                  role="menuitem"
+                  onClick={() => {
+                    void handleResetLayout();
+                    setIsActionsMenuOpen(false);
+                  }}
+                >
+                  <RotateCcw aria-hidden="true" />
+                  <span>Reset layout</span>
+                </button>
+                <button
+                  type="button"
+                  className="graph-actions-dropdown-item"
+                  role="menuitem"
+                  onClick={() => {
+                    setIsAddNodeModalOpen(true);
+                    setInsertionEdgeId("");
+                    setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
+                    setIsActionsMenuOpen(false);
+                  }}
+                  disabled={!graphPersistenceEnabled || isSavingGraph}
+                >
+                  <Plus aria-hidden="true" />
+                  <span>Insert node</span>
+                </button>
+                <button
+                  type="button"
+                  className="graph-actions-dropdown-item"
+                  role="menuitem"
+                  onClick={() => {
+                    void handleBridgeAction();
+                    setIsActionsMenuOpen(false);
+                  }}
+                  disabled={!graphPersistenceEnabled || isSavingGraph}
+                >
+                  <span className="graph-actions-dot" aria-hidden="true" />
+                  <span>
+                    {existingBridgeEdge
+                      ? "Remove bridge"
+                      : pendingBridgeSourceId === selectedNode.id
+                        ? "Cancel bridge"
+                        : pendingBridgeSourceId
+                          ? "Connect here"
+                          : "Start bridge"}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="graph-actions-dropdown-item is-danger"
+                  role="menuitem"
+                  onClick={() => {
+                    void handleDeleteSelectedNode();
+                    setIsActionsMenuOpen(false);
+                  }}
+                  disabled={!graphPersistenceEnabled || isSavingGraph}
+                >
+                  <Trash2 aria-hidden="true" />
+                  <span>Delete node</span>
+                </button>
+              </div>
+            ) : null}
+          </div>
+
           <div className="graph-controls-panel">
             <button
               type="button"
@@ -1577,96 +1671,6 @@ function MapCanvas({
                 aria-label="Search map nodes"
               />
             </label>
-            <div ref={actionsMenuRef} className={`graph-actions-menu${isActionsMenuOpen ? " is-open" : ""}`}>
-              <button
-                type="button"
-                className="graph-control-button graph-control-menu"
-                aria-label="Open canvas actions"
-                aria-expanded={isActionsMenuOpen}
-                onClick={() => setIsActionsMenuOpen((current) => !current)}
-              >
-                <Menu aria-hidden="true" />
-              </button>
-
-              {isActionsMenuOpen ? (
-                <div className="graph-actions-dropdown" role="menu" aria-label="Canvas actions">
-                  <button
-                    type="button"
-                    className="graph-actions-dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsHistoryModalOpen(true);
-                      setIsActionsMenuOpen(false);
-                    }}
-                    disabled={!graphPersistenceEnabled}
-                  >
-                    <History aria-hidden="true" />
-                    <span>History</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="graph-actions-dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      void handleResetLayout();
-                      setIsActionsMenuOpen(false);
-                    }}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                    <span>Reset layout</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="graph-actions-dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      setIsAddNodeModalOpen(true);
-                      setInsertionEdgeId("");
-                      setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
-                      setIsActionsMenuOpen(false);
-                    }}
-                    disabled={!graphPersistenceEnabled || isSavingGraph}
-                  >
-                    <Plus aria-hidden="true" />
-                    <span>Insert node</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="graph-actions-dropdown-item"
-                    role="menuitem"
-                    onClick={() => {
-                      void handleBridgeAction();
-                      setIsActionsMenuOpen(false);
-                    }}
-                    disabled={!graphPersistenceEnabled || isSavingGraph}
-                  >
-                    <span className="graph-actions-dot" aria-hidden="true" />
-                    <span>
-                      {existingBridgeEdge
-                        ? "Remove bridge"
-                        : pendingBridgeSourceId === selectedNode.id
-                          ? "Cancel bridge"
-                          : pendingBridgeSourceId
-                            ? "Connect here"
-                            : "Start bridge"}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    className="graph-actions-dropdown-item is-danger"
-                    role="menuitem"
-                    onClick={() => {
-                      void handleDeleteSelectedNode();
-                      setIsActionsMenuOpen(false);
-                    }}
-                    disabled={!graphPersistenceEnabled || isSavingGraph}
-                  >
-                    <Trash2 aria-hidden="true" />
-                    <span>Delete node</span>
-                  </button>
-                </div>
-              ) : null}
-            </div>
           </div>
 
           <ReactFlow
