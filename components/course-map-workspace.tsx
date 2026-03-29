@@ -76,6 +76,47 @@ type CourseMapWorkspaceProps = {
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
+function getNodeSearchScore(node: CourseMapNode, normalizedQuery: string) {
+  if (!normalizedQuery) {
+    return -1;
+  }
+
+  const label = node.label.toLowerCase();
+  const slug = node.slug.toLowerCase();
+  const summary = node.summary.toLowerCase();
+  const track = node.track.toLowerCase();
+
+  let score = -1;
+
+  if (label === normalizedQuery) {
+    score = Math.max(score, 120);
+  } else if (label.startsWith(normalizedQuery)) {
+    score = Math.max(score, 100);
+  } else if (label.includes(normalizedQuery)) {
+    score = Math.max(score, 80);
+  }
+
+  if (slug === normalizedQuery) {
+    score = Math.max(score, 76);
+  } else if (slug.startsWith(normalizedQuery)) {
+    score = Math.max(score, 68);
+  } else if (slug.includes(normalizedQuery)) {
+    score = Math.max(score, 60);
+  }
+
+  if (track === normalizedQuery) {
+    score = Math.max(score, 34);
+  } else if (track.includes(normalizedQuery)) {
+    score = Math.max(score, 24);
+  }
+
+  if (summary.includes(normalizedQuery)) {
+    score = Math.max(score, 18);
+  }
+
+  return score;
+}
+
 function collectConnectedNodeIds(selectedId: string | null, edges: CourseMapEdge[]) {
   if (!selectedId) {
     return new Set<string>();
@@ -357,20 +398,31 @@ function MapCanvas({
     };
   }, []);
 
-  const matchedIds = useMemo(() => {
+  const rankedMatches = useMemo(() => {
     if (!normalizedQuery) {
-      return new Set<string>();
+      return [];
     }
 
-    return new Set(
-      course.nodes
-        .filter((node) => {
-          const haystack = [node.label, node.summary, node.track].join(" ").toLowerCase();
-          return haystack.includes(normalizedQuery);
-        })
-        .map((node) => node.id),
-    );
+    return course.nodes
+      .map((node, index) => ({
+        id: node.id,
+        index,
+        score: getNodeSearchScore(node, normalizedQuery),
+      }))
+      .filter((match) => match.score >= 0)
+      .sort((left, right) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+
+        return left.index - right.index;
+      });
   }, [course.nodes, normalizedQuery]);
+
+  const matchedIds = useMemo(
+    () => new Set(rankedMatches.map((match) => match.id)),
+    [rankedMatches],
+  );
 
   useEffect(() => {
     if (!hasHydratedRef.current) {
@@ -437,11 +489,11 @@ function MapCanvas({
   }, [layoutPersistenceEnabled, mapKey, nodes, positionSnapshot]);
 
   useEffect(() => {
-    if (!normalizedQuery || matchedIds.size === 0) {
+    if (!normalizedQuery || rankedMatches.length === 0) {
       return;
     }
 
-    const firstMatch = course.nodes.find((node) => matchedIds.has(node.id));
+    const firstMatch = course.nodes.find((node) => node.id === rankedMatches[0]?.id);
     if (!firstMatch) {
       return;
     }
@@ -454,7 +506,7 @@ function MapCanvas({
       zoom: 0.92,
     });
     setSelectedId(firstMatch.id);
-  }, [course.nodes, graphApi, matchedIds, nodes, normalizedQuery]);
+  }, [course.nodes, graphApi, nodes, normalizedQuery, rankedMatches]);
 
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -803,12 +855,13 @@ function MapCanvas({
               ))}
             </div>
             <div className="node-detail-actions">
-              <Button asChild size="sm">
+              <Button asChild size="sm" className="node-detail-action-button">
                 <Link href={`/workspace/${course.slug}/learn/${selectedNode.slug}`}>Learn</Link>
               </Button>
               <Button
                 type="button"
                 size="sm"
+                className="node-detail-action-button"
                 variant={isSelectedNodeCompleted ? "secondary" : "default"}
                 onClick={handleToggleNodeDone}
                 disabled={!progressPersistenceEnabled || isSavingProgress}

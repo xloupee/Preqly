@@ -1,7 +1,8 @@
 "use client";
 
-import { memo, useEffect, useMemo } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
   Handle,
@@ -29,6 +30,8 @@ type CourseMapMinimapProps = {
 type MinimapNodeData = {
   label: string;
   active: boolean;
+  matched: boolean;
+  dimmed: boolean;
 };
 
 type HandleId =
@@ -43,7 +46,16 @@ type HandleId =
 
 function MinimapNode({ data }: NodeProps<MinimapNodeData>) {
   return (
-    <div className={`sidebar-minimap-node${data.active ? " is-active" : ""}`}>
+    <div
+      className={[
+        "sidebar-minimap-node",
+        data.active ? "is-active" : "",
+        data.matched ? "is-matched" : "",
+        data.dimmed ? "is-dimmed" : "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <Handle className="sidebar-minimap-handle" id="top-source" type="source" position={Position.Top} />
       <Handle className="sidebar-minimap-handle" id="top-target" type="target" position={Position.Top} />
       <Handle className="sidebar-minimap-handle" id="right-source" type="source" position={Position.Right} />
@@ -62,6 +74,47 @@ function MinimapNode({ data }: NodeProps<MinimapNodeData>) {
 const nodeTypes = {
   minimap: memo(MinimapNode),
 };
+
+function getMinimapSearchScore(node: CourseMapNode, normalizedQuery: string) {
+  if (!normalizedQuery) {
+    return -1;
+  }
+
+  const label = node.label.toLowerCase();
+  const slug = node.slug.toLowerCase();
+  const summary = node.summary.toLowerCase();
+  const track = node.track.toLowerCase();
+
+  let score = -1;
+
+  if (label === normalizedQuery) {
+    score = Math.max(score, 120);
+  } else if (label.startsWith(normalizedQuery)) {
+    score = Math.max(score, 100);
+  } else if (label.includes(normalizedQuery)) {
+    score = Math.max(score, 80);
+  }
+
+  if (slug === normalizedQuery) {
+    score = Math.max(score, 76);
+  } else if (slug.startsWith(normalizedQuery)) {
+    score = Math.max(score, 68);
+  } else if (slug.includes(normalizedQuery)) {
+    score = Math.max(score, 60);
+  }
+
+  if (track === normalizedQuery) {
+    score = Math.max(score, 34);
+  } else if (track.includes(normalizedQuery)) {
+    score = Math.max(score, 24);
+  }
+
+  if (summary.includes(normalizedQuery)) {
+    score = Math.max(score, 18);
+  }
+
+  return score;
+}
 
 function pickHandles(source: { x: number; y: number }, target: { x: number; y: number }) {
   const dx = target.x - source.x;
@@ -89,6 +142,36 @@ function CourseMapMinimapCanvas({
   const router = useRouter();
   const graphApi = useReactFlow<MinimapNodeData>();
   const nodesInitialized = useNodesInitialized();
+  const [query, setQuery] = useState("");
+  const deferredQuery = useDeferredValue(query);
+  const normalizedQuery = deferredQuery.trim().toLowerCase();
+
+  const rankedMatches = useMemo(() => {
+    if (!normalizedQuery) {
+      return [];
+    }
+
+    return courseNodes
+      .map((node, index) => ({
+        id: node.id,
+        index,
+        score: getMinimapSearchScore(node, normalizedQuery),
+      }))
+      .filter((match) => match.score >= 0)
+      .sort((left, right) => {
+        if (right.score !== left.score) {
+          return right.score - left.score;
+        }
+
+        return left.index - right.index;
+      });
+  }, [courseNodes, normalizedQuery]);
+
+  const matchedIds = useMemo(
+    () => new Set(rankedMatches.map((match) => match.id)),
+    [rankedMatches],
+  );
+  const hasMatches = matchedIds.size > 0;
 
   const nodes = useMemo<Node<MinimapNodeData>[]>(
     () =>
@@ -101,9 +184,11 @@ function CourseMapMinimapCanvas({
         data: {
           label: node.label,
           active: node.slug === activeSlug,
+          matched: matchedIds.has(node.id),
+          dimmed: Boolean(normalizedQuery) && hasMatches && !matchedIds.has(node.id),
         },
       })),
-    [courseNodes, activeSlug],
+    [activeSlug, courseNodes, hasMatches, matchedIds, normalizedQuery],
   );
 
   const edges = useMemo<Edge[]>(() => {
@@ -150,31 +235,43 @@ function CourseMapMinimapCanvas({
       return;
     }
 
+    const searchTargetNode =
+      normalizedQuery && rankedMatches.length > 0
+        ? courseNodes.find((node) => node.id === rankedMatches[0]?.id)
+        : null;
     const activeNode = courseNodes.find((node) => node.slug === activeSlug);
-    if (!activeNode) {
+    const focusNode = searchTargetNode ?? activeNode;
+
+    if (!focusNode) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      graphApi.setCenter(activeNode.position.x + 66, activeNode.position.y + 22, {
-        zoom: 0.74,
+      graphApi.setCenter(focusNode.position.x + 66, focusNode.position.y + 22, {
+        zoom: normalizedQuery ? 0.82 : 0.74,
         duration: 520,
       });
     }, 120);
 
     return () => window.clearTimeout(timer);
-  }, [activeSlug, courseNodes, graphApi, nodesInitialized]);
+  }, [activeSlug, courseNodes, graphApi, nodesInitialized, normalizedQuery, rankedMatches]);
 
   return (
     <section className="sidebar-minimap-card" aria-label="Course minimap">
       <div className="sidebar-minimap-copy">
-        <p className="sidebar-course-label">Course minimap</p>
-        <p className="sidebar-minimap-note">
-          Drag to move the map. Click a topic node to open that lesson.
-        </p>
       </div>
 
       <div className="sidebar-minimap-shell">
+        <label className="sidebar-minimap-search">
+          <Search aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search topics"
+            aria-label="Search minimap topics"
+          />
+        </label>
         <div className="sidebar-minimap-flow">
           <ReactFlow
             fitView

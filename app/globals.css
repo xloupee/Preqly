@@ -828,10 +828,13 @@ label[for],
 }
 
 .workspace-route .sidebar-brand {
+  position: relative;
   display: grid;
-  align-items: center;
+  align-items: start;
   grid-template-columns: auto 1fr auto;
   gap: 0.8rem;
+  min-height: 2.35rem;
+  padding-right: 3.1rem;
 }
 
 .workspace-route .sidebar-brand-copy {
@@ -889,6 +892,9 @@ label[for],
 }
 
 .workspace-route .sidebar-collapse {
+  position: absolute;
+  top: 0;
+  right: 0;
   width: 2.3rem;
   height: 2.3rem;
   cursor: pointer;
@@ -975,10 +981,16 @@ label[for],
   background: color-mix(in oklab, var(--surface) 90%, white 10%);
   padding: 0.55rem 0.8rem;
   color: var(--foreground-soft);
-  font-size: 0.76rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-family:
+    "Iowan Old Style",
+    "Palatino Linotype",
+    "Book Antiqua",
+    Georgia,
+    serif;
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1;
   transition:
     border-color 180ms ease,
     background-color 180ms ease,
@@ -1271,6 +1283,44 @@ label[for],
   gap: 0.8rem;
 }
 
+.workspace-route .sidebar-minimap-search {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border: 1px solid color-mix(in oklab, var(--border) 75%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 90%, white 10%);
+  padding: 0.75rem 0.95rem;
+  color: var(--foreground-soft);
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.5);
+}
+
+.workspace-route .sidebar-minimap-search input {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font: inherit;
+  outline: none;
+}
+
+.workspace-route .sidebar-minimap-search input::placeholder {
+  color: var(--foreground-muted);
+}
+
+.workspace-route .sidebar-minimap-search input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 0.9rem;
+  height: 0.9rem;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M4 4l8 8M12 4L4 12' stroke='%23614f36' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.9;
+}
+
 .workspace-route .sidebar-minimap-flow {
   height: 18rem;
   overflow: hidden;
@@ -1350,6 +1400,15 @@ label[for],
 .workspace-route .sidebar-minimap-node.is-active {
   border-color: color-mix(in oklab, var(--accent-foreground) 45%, transparent);
   background: color-mix(in oklab, var(--accent) 72%, white 28%);
+}
+
+.workspace-route .sidebar-minimap-node.is-matched {
+  border-color: color-mix(in oklab, var(--ring) 58%, transparent);
+  background: color-mix(in oklab, var(--surface) 88%, white 12%);
+}
+
+.workspace-route .sidebar-minimap-node.is-dimmed {
+  opacity: 0.42;
 }
 
 .workspace-route .sidebar-minimap-flow .react-flow__node:hover .sidebar-minimap-node {
@@ -1670,6 +1729,12 @@ label[for],
 .workspace-route .workspace-shell.is-collapsed .sidebar-brand {
   grid-template-columns: 1fr;
   justify-items: center;
+  padding-right: 0;
+}
+
+.workspace-route .workspace-shell.is-collapsed .sidebar-logo,
+.workspace-route .workspace-shell.is-collapsed .sidebar-footer {
+  display: none;
 }
 
 .workspace-route .workspace-shell.is-collapsed .sidebar-brand-copy {
@@ -1695,11 +1760,21 @@ label[for],
   pointer-events: none;
 }
 
+.workspace-route .workspace-shell.is-collapsed .sidebar-top-slot {
+  display: none;
+}
+
 .workspace-route .workspace-shell.is-collapsed .sidebar-link {
   justify-content: center;
   width: 100%;
   gap: 0;
   padding-inline: 0.8rem;
+}
+
+.workspace-route .workspace-shell.is-collapsed .sidebar-collapse {
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .workspace-route .workspace-shell.is-collapsed .sidebar-link span,
@@ -2244,6 +2319,16 @@ label[for],
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 1rem;
+}
+
+.workspace-route .node-detail-action-button {
+  min-width: 8.75rem;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1;
 }
 
 .workspace-route .node-detail-feedback {
