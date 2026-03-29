@@ -167,12 +167,14 @@ export function WorkspaceShell({
     <div className={`workspace-shell${isCollapsed ? " is-collapsed" : ""}`}>
       <aside className="workspace-sidebar">
         <div className="sidebar-brand">
-          <div className="sidebar-logo">
-            <BrandLogo size={28} className="sidebar-logo-image" />
-          </div>
-          <div className="sidebar-brand-copy">
-            <h1>Workspace</h1>
-          </div>
+          <Link href="/" className="sidebar-brand-link" aria-label="Go to landing page">
+            <div className="sidebar-logo">
+              <BrandLogo size={28} className="sidebar-logo-image" />
+            </div>
+            <div className="sidebar-brand-copy">
+              <h1>Workspace</h1>
+            </div>
+          </Link>
           <button
             className="sidebar-collapse"
             type="button"

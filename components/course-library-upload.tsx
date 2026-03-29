@@ -42,14 +42,18 @@ export function CourseLibraryUpload() {
         });
 
         const payload = (await response.json().catch(() => null)) as
-          | { error?: string; job?: { id: string } }
+          | { error?: string; warning?: string | null; jobStarted?: boolean; job?: { id: string } }
           | null;
 
         if (!response.ok || !payload?.job?.id) {
           throw new Error(payload?.error ?? "Could not queue the course.");
         }
 
-        setMessage("Course queued. Open the workspace to watch it move through processing.");
+        setMessage(
+          payload.jobStarted === false
+            ? payload.warning ?? "Course added, but the background generator needs attention. Check the workspace job."
+            : "Course queued. Open the workspace to watch it move through processing.",
+        );
         router.push("/workspace");
         router.refresh();
       } catch (error) {
