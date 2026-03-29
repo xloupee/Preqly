@@ -2357,7 +2357,7 @@ label[for],
 
 .workspace-route .node-detail-actions {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 1rem;
@@ -2366,6 +2366,7 @@ label[for],
 .workspace-route .node-detail-action-button {
   min-width: 8.75rem;
   justify-content: center;
+  padding-inline: 0.975rem;
   font-family: inherit;
   font-size: 0.82rem;
   font-weight: 600;
@@ -3447,17 +3448,17 @@ label[for],
 @keyframes courseMapSurfaceEnter {
   from {
     opacity: 0.52;
-    transform: scale(1.04);
+    transform: scale(1);
     filter: blur(16px) saturate(1.08);
   }
   58% {
     opacity: 1;
-    transform: scale(1.01);
+    transform: scale(1);
     filter: blur(9px) saturate(1.05);
   }
   94% {
     opacity: 1;
-    transform: scale(0.996);
+    transform: scale(1);
     filter: blur(3px) saturate(1.02);
   }
   to {
@@ -3521,7 +3522,7 @@ label[for],
 
 .minimap-expand-transition.is-active .minimap-expand-transition-content {
   transform: translate3d(var(--minimap-content-shift-x, 36px), var(--minimap-content-shift-y, 22px), 0)
-    scale(1.08);
+    scale(1);
   filter: blur(10px) saturate(1.08);
   opacity: 0.8;
 }
