@@ -34,9 +34,6 @@ export async function POST(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
 
   if (!user) {
     return NextResponse.json({ error: "Sign in to generate a course." }, { status: 401 });
@@ -116,38 +113,38 @@ export async function POST(request: Request) {
   }
 
   try {
-    const functionBaseUrl =
-      process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-
-    if (!functionBaseUrl || !session?.access_token) {
-      throw new Error("Missing Supabase function invocation credentials.");
-    }
-
-    const functionUrl = `${functionBaseUrl}/functions/v1/generate-course-map`;
-    const invokeResponse = await fetch(functionUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-        "Content-Type": "application/json",
+    const { error: invokeError } = await supabase.functions.invoke(
+      "generate-course-map",
+      {
+        body: {
+          jobId,
+        },
       },
-      body: JSON.stringify({
-        jobId,
-      }),
-    });
+    );
 
-    if (!invokeResponse.ok) {
-      const details = await invokeResponse.text().catch(() => "");
+    if (invokeError) {
+      const details =
+        typeof invokeError.message === "string" && invokeError.message.trim()
+          ? invokeError.message
+          : "Could not start the course generation worker.";
       await supabase
         .from("course_jobs")
         .update({
           status: "error",
-          error_message: details || "Could not start the course generation worker.",
+          error_message: details,
         })
         .eq("id", jobId);
 
       return NextResponse.json(
-        { error: "We could not start the background course generator." },
-        { status: 502 },
+        {
+          job: {
+            ...data,
+            status: "error",
+            error_message: details,
+          },
+          jobStarted: false,
+          warning: details,
+        },
       );
     }
   } catch {
@@ -160,10 +157,88 @@ export async function POST(request: Request) {
       .eq("id", jobId);
 
     return NextResponse.json(
-      { error: "We could not reach the background course generator." },
-      { status: 502 },
+      {
+        job: {
+          ...data,
+          status: "error",
+          error_message: "Could not reach the Supabase Edge Function for course generation.",
+        },
+        jobStarted: false,
+        warning: "Could not reach the Supabase Edge Function for course generation.",
+      },
     );
   }
 
-  return NextResponse.json({ job: data });
+  return NextResponse.json({ job: data, jobStarted: true, warning: null });
+}
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json({ error: "Sign in to remove a course job." }, { status: 401 });
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
+  }
+
+  const jobId =
+    typeof (body as { jobId?: unknown })?.jobId === "string"
+      ? (body as { jobId: string }).jobId.trim()
+      : "";
+
+  if (!jobId) {
+    return NextResponse.json({ error: "Provide a course job to remove." }, { status: 400 });
+  }
+
+  const { data: job, error: selectError } = await supabase
+    .from("course_jobs")
+    .select("id, user_id, syllabus_path")
+    .eq("id", jobId)
+    .maybeSingle();
+
+  if (selectError) {
+    if (isMissingStorageOrSchema(selectError.message)) {
+      return NextResponse.json(
+        { error: "Run the latest Supabase migration to enable generated course jobs." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({ error: "We could not find that course job." }, { status: 404 });
+  }
+
+  if (!job) {
+    return NextResponse.json({ error: "We could not find that course job." }, { status: 404 });
+  }
+
+  if (job.user_id !== user.id) {
+    return NextResponse.json({ error: "You do not have access to this course job." }, { status: 403 });
+  }
+
+  const { error: deleteError } = await supabase.from("course_jobs").delete().eq("id", jobId);
+
+  if (deleteError) {
+    if (isMissingStorageOrSchema(deleteError.message)) {
+      return NextResponse.json(
+        { error: "Run the latest Supabase migration to enable generated course jobs." },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json({ error: "We could not remove this course job." }, { status: 500 });
+  }
+
+  if (job.syllabus_path) {
+    await supabase.storage.from("syllabi").remove([job.syllabus_path]);
+  }
+
+  return NextResponse.json({ ok: true, jobId });
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, FolderPlus, LoaderCircle, Plus, Sparkles } from "lucide-react";
+import { AlertCircle, FolderPlus, LoaderCircle, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ type WorkspaceCourseSwitcherProps = {
 };
 
 type FormStatus = "idle" | "submitting" | "error";
+type JobDeleteState = string | null;
 
 function formatCreatedAt(value: string) {
   const timestamp = new Date(value);
@@ -61,6 +62,7 @@ export function WorkspaceCourseSwitcher({
   const [message, setMessage] = useState("Upload a syllabus PDF to queue a new generated course map.");
   const [formStatus, setFormStatus] = useState<FormStatus>("idle");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [deletingJobId, setDeletingJobId] = useState<JobDeleteState>(null);
   const hasPendingJobs = courseJobs.some((job) => job.status === "queued" || job.status === "processing");
 
   useEffect(() => {
@@ -106,7 +108,7 @@ export function WorkspaceCourseSwitcher({
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | { error?: string; job?: { id: string } }
+        | { error?: string; warning?: string | null; jobStarted?: boolean; job?: { id: string } }
         | null;
 
       if (!response.ok || !payload?.job?.id) {
@@ -114,7 +116,11 @@ export function WorkspaceCourseSwitcher({
       }
 
       setFormStatus("idle");
-      setMessage("Course queued. This list will update as the map moves through processing.");
+      setMessage(
+        payload.jobStarted === false
+          ? payload.warning ?? "Course added, but the background generator needs attention. Check the sidebar job."
+          : "Course queued. This list will update as the map moves through processing.",
+      );
       setTitle("");
       setSelectedFile(null);
       setIsFormOpen(false);
@@ -127,6 +133,36 @@ export function WorkspaceCourseSwitcher({
     } catch (error) {
       setFormStatus("error");
       setMessage(mapCourseUploadError(error));
+    }
+  }
+
+  async function handleDeleteJob(jobId: string) {
+    setDeletingJobId(jobId);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/course-jobs", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobId }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; jobId?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "We could not remove this course job.");
+      }
+
+      setMessage("Course job removed.");
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not remove this course job.");
+    } finally {
+      setDeletingJobId(null);
     }
   }
 
@@ -177,6 +213,7 @@ export function WorkspaceCourseSwitcher({
         )}
 
         {courseJobs.map((job) => {
+          const isDeleting = deletingJobId === job.id;
           const content = (
             <>
               <div className="sidebar-class-copy">
@@ -217,6 +254,19 @@ export function WorkspaceCourseSwitcher({
               aria-live={job.status === "processing" ? "polite" : undefined}
             >
               {content}
+              <button
+                type="button"
+                className="sidebar-class-delete"
+                aria-label={`Remove ${job.title}`}
+                onClick={() => void handleDeleteJob(job.id)}
+                disabled={isDeleting}
+              >
+                {isDeleting ? (
+                  <LoaderCircle aria-hidden="true" className="animate-spin" />
+                ) : (
+                  <Trash2 aria-hidden="true" />
+                )}
+              </button>
             </div>
           );
         })}
