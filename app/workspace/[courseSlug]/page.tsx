@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { CourseMapWorkspace } from "@/components/course-map-workspace";
-import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
+import { getCourseBySlug, getCourseLibraryState } from "@/lib/course-library";
 import { loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
 import { loadNodeProgressForCurrentUser } from "@/lib/node-progress";
 import { createClient } from "@/lib/supabase/server";
@@ -23,14 +23,15 @@ export default async function CourseWorkspacePage({
   }
 
   const { courseSlug } = await params;
-  const [course, courses] = await Promise.all([
+  const [course, courseLibrary] = await Promise.all([
     getCourseBySlug(courseSlug),
-    getAllCourses(),
+    getCourseLibraryState(),
   ]);
 
   if (!course) {
     notFound();
   }
+  const { courses, courseJobs, jobsEnabled, jobsMessage } = courseLibrary;
 
   const mapKey = `course:${course.slug}`;
   const [
@@ -51,6 +52,9 @@ export default async function CourseWorkspacePage({
         <CourseMapWorkspace
           course={course}
           courses={courses}
+          courseJobs={courseJobs}
+          courseJobsEnabled={jobsEnabled}
+          courseJobsMessage={jobsMessage}
           userEmail={user.email ?? null}
           mapKey={mapKey}
           initialLayoutPositions={initialLayoutPositions}

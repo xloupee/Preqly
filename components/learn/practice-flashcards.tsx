@@ -10,7 +10,7 @@ type PracticeFlashcardsProps = {
   lesson: CourseMapLesson;
 };
 
-type StudyMode = "flashcards" | "learn" | "test";
+type StudyMode = "flashcards" | "learn" | "test" | "ai-video";
 type LearnRating = "again" | "good" | "easy";
 type CardTransitionDirection = "forward" | "backward";
 type LearnCardState = {
@@ -114,6 +114,7 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
     { id: "flashcards", label: "Flashcards" },
     { id: "learn", label: "Learn" },
     { id: "test", label: "Test", disabled: !practiceTest },
+    { id: "ai-video", label: "AI Video" },
   ];
 
   const flashcard = deckCards[currentIndex];
@@ -304,7 +305,6 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
         <div>
           <p className="learn-sidebar-label">Practice deck</p>
           <h2>{deck.title}</h2>
-          <p className="practice-deck-summary">{deck.summary}</p>
         </div>
         <div className="practice-deck-stats" aria-label="Study deck metadata">
           <span>
@@ -356,13 +356,19 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
       <section className="practice-card-shell" aria-live="polite">
         <div className="practice-card-toolbar">
           <span className="practice-card-tag">
-            {mode === "test" ? practiceTest?.title ?? "Quiz" : activeCard?.tag ?? "Review complete"}
+            {mode === "test"
+              ? practiceTest?.title ?? "Quiz"
+              : mode === "ai-video"
+                ? "AI lesson video"
+                : activeCard?.tag ?? "Review complete"}
           </span>
           <span className="practice-card-step">
             {mode === "test"
               ? testSubmitted
                 ? `Score ${testScore}/${testQuestions.length}`
                 : `${answeredCount}/${testQuestions.length} answered`
+              : mode === "ai-video"
+                ? "Video coming soon"
               : mode === "learn"
                 ? shouldShowDoneState
                   ? "Done for now"
@@ -378,7 +384,6 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
             <div className="practice-test-panel">
               <div className="practice-test-header">
                 <h3>{practiceTest.title}</h3>
-                <p>{practiceTest.summary}</p>
               </div>
 
               {testSubmitted ? (
@@ -450,6 +455,15 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
               </div>
             </div>
           </div>
+        ) : mode === "ai-video" ? (
+          <div key={`ai-video-${cardMotionKey}`} className={`practice-card-stage is-${cardTransitionDirection}`}>
+            <div className="practice-empty-state practice-video-placeholder">
+              <p className="practice-empty-title">AI video placeholder</p>
+              <p className="practice-empty-copy">
+                A generated walkthrough video for this topic will appear here.
+              </p>
+            </div>
+          </div>
         ) : activeCard ? (
           <div
             key={`${mode}-${activeCard.id}-${cardMotionKey}`}
@@ -517,7 +531,7 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
                 </Button>
               )}
             </div>
-          ) : mode === "learn" ? (
+          ) : mode === "ai-video" ? null : mode === "learn" ? (
             <div className="practice-rating-row" aria-label="Review ratings">
               {ratingOptions.map((option) => {
                 const Icon = option.icon;
@@ -569,12 +583,20 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
 
       <div className="practice-progress">
         <div className="practice-progress-copy">
-          <span>{mode === "test" ? `${answeredCount} answered` : `${reviewedCount} reviewed`}</span>
+          <span>
+            {mode === "test"
+              ? `${answeredCount} answered`
+              : mode === "ai-video"
+                ? "Video placeholder"
+                : `${reviewedCount} reviewed`}
+          </span>
           <span>
             {mode === "test"
               ? testSubmitted
                 ? `Final score: ${testScore}/${testQuestions.length}`
                 : `${testQuestions.length - answeredCount} unanswered`
+              : mode === "ai-video"
+                ? "No video generated yet"
               : mode === "learn"
                 ? shouldShowDoneState
                   ? "Done until the next day-based review"

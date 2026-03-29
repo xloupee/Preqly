@@ -89,10 +89,6 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
               </div>
 
               <header className="dashboard-header">
-                <p>
-                  Use the dashboard as a lightweight control center for uploaded classes, class status, and the
-                  fastest path back into the map.
-                </p>
               </header>
 
               {!schemaReady ? (

@@ -11,12 +11,14 @@ import {
   LoaderCircle,
   LogOut,
   Settings,
+  Trash2,
   X,
 } from "lucide-react";
 
 import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { type ClassRecord } from "@/lib/class-record";
+import type { CourseJobRecord } from "@/lib/course-job-types";
 import type { CourseRecord } from "@/lib/course-types";
 import { createClient } from "@/lib/supabase/client";
 import { WorkspaceClassSwitcher } from "@/components/workspace-class-switcher";
@@ -34,9 +36,12 @@ type WorkspaceShellProps = {
   classes?: ClassRecord[];
   activeClass?: ClassRecord | null;
   courses?: CourseRecord[];
+  courseJobs?: CourseJobRecord[];
   currentCourse?: CourseRecord | null;
   classesEnabled?: boolean;
   classesMessage?: string | null;
+  courseJobsEnabled?: boolean;
+  courseJobsMessage?: string | null;
   userEmail?: string | null;
   sidebarBottom?: ReactNode;
 };
@@ -46,15 +51,21 @@ export function WorkspaceShell({
   classes,
   activeClass,
   courses,
+  courseJobs,
   currentCourse,
   classesEnabled = true,
   classesMessage = null,
+  courseJobsEnabled = true,
+  courseJobsMessage = null,
   userEmail = null,
   sidebarBottom,
 }: WorkspaceShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [settingsCourses, setSettingsCourses] = useState(courses ?? []);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [deletingCourseSlug, setDeletingCourseSlug] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const hasClassWorkspace = classes !== undefined;
@@ -81,6 +92,10 @@ export function WorkspaceShell({
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isSettingsOpen]);
+
+  useEffect(() => {
+    setSettingsCourses(courses ?? []);
+  }, [courses]);
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -109,6 +124,45 @@ export function WorkspaceShell({
       setIsSettingsOpen(false);
     }
   }
+
+  async function handleDeleteCourse(slug: string) {
+    setDeletingCourseSlug(slug);
+    setSettingsError(null);
+
+    try {
+      const response = await fetch("/api/courses", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ slug }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; slug?: string }
+        | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "We could not remove this course.");
+      }
+
+      const remainingCourses = settingsCourses.filter((course) => course.slug !== slug);
+      setSettingsCourses(remainingCourses);
+
+      if (currentCourse?.slug === slug) {
+        const nextCourse = remainingCourses[0] ?? null;
+        setIsSettingsOpen(false);
+        router.push(nextCourse ? `/workspace/${nextCourse.slug}` : "/workspace");
+      } else {
+        router.refresh();
+      }
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : "We could not remove this course.");
+    } finally {
+      setDeletingCourseSlug(null);
+    }
+  }
+
   return (
     <div className={`workspace-shell${isCollapsed ? " is-collapsed" : ""}`}>
       <aside className="workspace-sidebar">
@@ -156,6 +210,9 @@ export function WorkspaceShell({
         {hasCourseWorkspace ? (
           <WorkspaceCourseSwitcher
             courses={courses}
+            courseJobs={courseJobs}
+            courseJobsEnabled={courseJobsEnabled}
+            courseJobsMessage={courseJobsMessage}
             activeCourseSlug={currentCourse?.slug ?? null}
           />
         ) : hasClassWorkspace ? (
@@ -245,10 +302,64 @@ export function WorkspaceShell({
             </section>
 
             <section className="settings-modal-card" aria-label="Coming soon">
-              <p className="settings-modal-label">Coming soon</p>
-              <p className="settings-modal-note">
-                More account and workspace controls will live here as the product surface grows.
-              </p>
+              <p className="settings-modal-label">Courses</p>
+              {settingsCourses.length > 0 ? (
+                <div className="settings-course-list">
+                  {settingsCourses.map((course) => {
+                    const isCurrent = course.slug === currentCourse?.slug;
+                    const isSeedCourse = course.source === "seed";
+                    const isDeleting = deletingCourseSlug === course.slug;
+
+                    return (
+                      <div key={course.slug} className="settings-course-row">
+                        <div className="settings-course-copy">
+                          <div className="settings-course-title-row">
+                            <span className="settings-course-title">{course.title}</span>
+                            {isCurrent ? (
+                              <span className="settings-course-badge">Current</span>
+                            ) : null}
+                            {isSeedCourse ? (
+                              <span className="settings-course-badge is-muted">Starter</span>
+                            ) : null}
+                          </div>
+                          <p className="settings-course-meta">
+                            {course.source === "seed"
+                              ? "Starter course"
+                              : course.syllabusFileName ?? "Generated course"}
+                          </p>
+                        </div>
+
+                        {!isSeedCourse ? (
+                          <button
+                            type="button"
+                            className="settings-course-remove"
+                            onClick={() => void handleDeleteCourse(course.slug)}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? (
+                              <>
+                                <LoaderCircle aria-hidden="true" className="animate-spin" />
+                                Removing
+                              </>
+                            ) : (
+                              <>
+                                <Trash2 aria-hidden="true" />
+                                Remove
+                              </>
+                            )}
+                          </button>
+                        ) : null}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="settings-modal-note">No courses yet.</p>
+              )}
+
+              {settingsError ? (
+                <p className="settings-modal-note is-error">{settingsError}</p>
+              ) : null}
             </section>
 
             <div className="settings-modal-actions">

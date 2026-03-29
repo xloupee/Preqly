@@ -1,23 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
-import { FolderPlus, LoaderCircle, Plus } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { AlertCircle, FolderPlus, LoaderCircle, Plus, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getCourseJobStatusLabel, type CourseJobRecord } from "@/lib/course-job-types";
+import { mapCourseUploadError } from "@/lib/course-map-backend";
 import type { CourseRecord } from "@/lib/course-types";
 
 type WorkspaceCourseSwitcherProps = {
   courses: CourseRecord[];
+  courseJobs?: CourseJobRecord[];
+  courseJobsEnabled?: boolean;
+  courseJobsMessage?: string | null;
   activeCourseSlug: string | null;
 };
 
 type FormStatus = "idle" | "submitting" | "error";
-
-const backendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:8000";
 
 function formatCreatedAt(value: string) {
   const timestamp = new Date(value);
@@ -47,17 +49,33 @@ function formatCreatedAt(value: string) {
 
 export function WorkspaceCourseSwitcher({
   courses,
+  courseJobs = [],
+  courseJobsEnabled = true,
+  courseJobsMessage = null,
   activeCourseSlug,
 }: WorkspaceCourseSwitcherProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [message, setMessage] = useState(
-    "Upload a syllabus PDF to generate a new prerequisite map.",
-  );
+  const [message, setMessage] = useState("Upload a syllabus PDF to queue a new generated course map.");
   const [formStatus, setFormStatus] = useState<FormStatus>("idle");
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const hasPendingJobs = courseJobs.some((job) => job.status === "queued" || job.status === "processing");
+
+  useEffect(() => {
+    if (!hasPendingJobs) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      router.refresh();
+    }, 5000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hasPendingJobs, router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -79,46 +97,24 @@ export function WorkspaceCourseSwitcher({
     formData.set("file", selectedFile);
 
     setFormStatus("submitting");
-    setMessage("Reading the syllabus and generating the course map...");
+    setMessage("Uploading the syllabus and queueing the background course generator...");
 
     try {
-      const generateResponse = await fetch(
-        `${backendUrl}/api/course-map/upload`,
-        { method: "POST", body: formData },
-      );
-
-      const generatePayload = (await generateResponse
-        .json()
-        .catch(() => null)) as
-        | { detail?: string; course?: CourseRecord }
-        | null;
-
-      if (!generateResponse.ok || !generatePayload?.course) {
-        throw new Error(
-          generatePayload?.detail ?? "We could not generate this course.",
-        );
-      }
-
-      setMessage("Saving course...");
-
-      const saveResponse = await fetch("/api/courses", {
+      const response = await fetch("/api/course-jobs", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(generatePayload.course),
+        body: formData,
       });
 
-      const savePayload = (await saveResponse.json().catch(() => null)) as
-        | { error?: string; course?: { slug: string } }
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; job?: { id: string } }
         | null;
 
-      if (!saveResponse.ok || !savePayload?.course?.slug) {
-        throw new Error(
-          savePayload?.error ?? "We could not save this course.",
-        );
+      if (!response.ok || !payload?.job?.id) {
+        throw new Error(payload?.error ?? "We could not queue this course.");
       }
 
       setFormStatus("idle");
-      setMessage("Course generated. Opening workspace...");
+      setMessage("Course queued. This list will update as the map moves through processing.");
       setTitle("");
       setSelectedFile(null);
       setIsFormOpen(false);
@@ -127,13 +123,10 @@ export function WorkspaceCourseSwitcher({
         fileInputRef.current.value = "";
       }
 
-      router.push(`/workspace/${savePayload.course.slug}`);
       router.refresh();
     } catch (error) {
       setFormStatus("error");
-      setMessage(
-        error instanceof Error ? error.message : "We could not add this course.",
-      );
+      setMessage(mapCourseUploadError(error));
     }
   }
 
@@ -142,7 +135,7 @@ export function WorkspaceCourseSwitcher({
       <div className="sidebar-class-header">
         <div>
           <p className="sidebar-course-label">My courses</p>
-          <p className="sidebar-class-subtitle">Switch between generated course maps.</p>
+          <p className="sidebar-class-subtitle">Switch between ready maps and queued syllabus jobs.</p>
         </div>
         <button
           type="button"
@@ -160,9 +153,7 @@ export function WorkspaceCourseSwitcher({
           courses.map((course) => {
             const isActive = course.slug === activeCourseSlug;
             const sourceLabel =
-              course.source === "seed"
-                ? "Starter map"
-                : course.syllabusFileName ?? "Generated from syllabus";
+              course.source === "seed" ? "Starter map" : course.syllabusFileName ?? "Generated from syllabus";
 
             return (
               <Link
@@ -174,9 +165,7 @@ export function WorkspaceCourseSwitcher({
                   <span className="sidebar-class-title">{course.title}</span>
                   <span className="sidebar-class-file">{sourceLabel}</span>
                 </div>
-                <span className="sidebar-class-status">
-                  {formatCreatedAt(course.createdAt)}
-                </span>
+                <span className="sidebar-class-status">{formatCreatedAt(course.createdAt)}</span>
               </Link>
             );
           })
@@ -186,7 +175,58 @@ export function WorkspaceCourseSwitcher({
             <span>No courses yet.</span>
           </div>
         )}
+
+        {courseJobs.map((job) => {
+          const content = (
+            <>
+              <div className="sidebar-class-copy">
+                <span className="sidebar-class-title">{job.title}</span>
+                <span className="sidebar-class-file">
+                  {job.errorMessage ?? job.syllabusFileName}
+                </span>
+              </div>
+              <span className={`sidebar-class-status sidebar-job-status is-${job.status}`}>
+                {job.status === "processing" ? (
+                  <LoaderCircle aria-hidden="true" className="animate-spin" />
+                ) : job.status === "queued" ? (
+                  <Sparkles aria-hidden="true" />
+                ) : job.status === "error" ? (
+                  <AlertCircle aria-hidden="true" />
+                ) : null}
+                {getCourseJobStatusLabel(job.status)}
+              </span>
+            </>
+          );
+
+          if (job.status === "ready" && job.courseSlug) {
+            return (
+              <Link
+                key={job.id}
+                href={`/workspace/${job.courseSlug}`}
+                className="sidebar-class-item is-job is-ready"
+              >
+                {content}
+              </Link>
+            );
+          }
+
+          return (
+            <div
+              key={job.id}
+              className={`sidebar-class-item is-job is-${job.status}`}
+              aria-live={job.status === "processing" ? "polite" : undefined}
+            >
+              {content}
+            </div>
+          );
+        })}
       </div>
+
+      {!courseJobsEnabled && courseJobsMessage ? (
+        <p className="sidebar-form-message is-error" role="status">
+          {courseJobsMessage}
+        </p>
+      ) : null}
 
       {isFormOpen ? (
         <form className="sidebar-add-class-form" onSubmit={handleSubmit} noValidate>
@@ -208,11 +248,11 @@ export function WorkspaceCourseSwitcher({
             />
           </label>
 
-          <Button type="submit" size="sm" disabled={formStatus === "submitting"}>
+          <Button type="submit" size="sm" disabled={formStatus === "submitting" || !courseJobsEnabled}>
             {formStatus === "submitting" ? (
               <>
                 <LoaderCircle aria-hidden="true" className="animate-spin" />
-                Generating
+                Queueing
               </>
             ) : (
               "Add course"

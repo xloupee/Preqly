@@ -118,3 +118,108 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ course: record });
 }
+
+export async function DELETE(request: Request) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: "Sign in to remove a course." },
+      { status: 401 },
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON body." },
+      { status: 400 },
+    );
+  }
+
+  const slug = typeof (body as { slug?: unknown })?.slug === "string"
+    ? (body as { slug: string }).slug.trim()
+    : "";
+
+  if (!slug) {
+    return NextResponse.json(
+      { error: "Provide a course to remove." },
+      { status: 400 },
+    );
+  }
+
+  const { data, error: selectError } = await supabase
+    .from("courses")
+    .select("user_id, slug, source")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (selectError) {
+    if (isMissingSchema(selectError.message)) {
+      return NextResponse.json(
+        {
+          error:
+            "Run the latest Supabase migration to create the courses table.",
+        },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "We could not find that course." },
+      { status: 404 },
+    );
+  }
+
+  if (!data) {
+    return NextResponse.json(
+      { error: "We could not find that course." },
+      { status: 404 },
+    );
+  }
+
+  if (data.user_id !== user.id) {
+    return NextResponse.json(
+      { error: "You do not have access to this course." },
+      { status: 403 },
+    );
+  }
+
+  if (data.source === "seed") {
+    return NextResponse.json(
+      { error: "Starter courses cannot be removed." },
+      { status: 400 },
+    );
+  }
+
+  const { error: deleteError } = await supabase.from("courses").delete().eq("slug", slug);
+
+  if (deleteError) {
+    if (isMissingSchema(deleteError.message)) {
+      return NextResponse.json(
+        {
+          error:
+            "Run the latest Supabase migration to create the courses table.",
+        },
+        { status: 503 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "We could not remove this course." },
+      { status: 500 },
+    );
+  }
+
+  const mapKey = `course:${slug}`;
+
+  await supabase.from("map_layouts").delete().eq("map_key", mapKey);
+  await supabase.from("node_progress").delete().eq("map_key", mapKey);
+
+  return NextResponse.json({ ok: true, slug });
+}

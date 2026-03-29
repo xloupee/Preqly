@@ -30,6 +30,7 @@ import "reactflow/dist/style.css";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Button } from "@/components/ui/button";
+import type { CourseJobRecord } from "@/lib/course-job-types";
 import type { MapLayoutPositions } from "@/lib/map-layouts";
 import type { CourseMapEdge, CourseMapNode, CourseRecord } from "@/lib/course-types";
 
@@ -60,6 +61,9 @@ type HandleId =
 type CourseMapWorkspaceProps = {
   course: CourseRecord;
   courses: CourseRecord[];
+  courseJobs?: CourseJobRecord[];
+  courseJobsEnabled?: boolean;
+  courseJobsMessage?: string | null;
   userEmail?: string | null;
   mapKey: string | null;
   initialLayoutPositions?: MapLayoutPositions;
@@ -275,6 +279,9 @@ function getDefaultPositions(course: CourseRecord): MapLayoutPositions {
 function MapCanvas({
   course,
   courses,
+  courseJobs,
+  courseJobsEnabled = true,
+  courseJobsMessage = null,
   userEmail,
   mapKey,
   initialLayoutPositions = {},
@@ -668,7 +675,14 @@ function MapCanvas({
 
   if (!selectedNode) {
     return (
-      <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+      <WorkspaceShell
+        currentCourse={course}
+        courses={courses}
+        courseJobs={courseJobs}
+        courseJobsEnabled={courseJobsEnabled}
+        courseJobsMessage={courseJobsMessage}
+        userEmail={userEmail ?? null}
+      >
         <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
           <div className="workspace-canvas workspace-canvas-empty">
             <div className="workspace-state-card">
@@ -685,7 +699,14 @@ function MapCanvas({
   const isSelectedNodeCompleted = completedNodeIdSet.has(selectedNode.id);
 
   return (
-    <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+    <WorkspaceShell
+      currentCourse={course}
+      courses={courses}
+      courseJobs={courseJobs}
+      courseJobsEnabled={courseJobsEnabled}
+      courseJobsMessage={courseJobsMessage}
+      userEmail={userEmail ?? null}
+    >
       <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
         <div
           ref={canvasRef}

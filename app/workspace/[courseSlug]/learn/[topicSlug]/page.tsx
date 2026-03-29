@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Compass } from "lucide-react";
+import { ArrowLeft, Compass } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 
 import { PracticeFlashcards } from "@/components/learn/practice-flashcards";
 import { Button } from "@/components/ui/button";
 import { CourseMapMinimap } from "@/components/course-map-minimap";
 import { getCourseLessonBySlug } from "@/lib/course-map-data";
-import { getAllCourses, getCourseBySlug } from "@/lib/course-library";
+import { getCourseBySlug, getCourseLibraryState } from "@/lib/course-library";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { createClient } from "@/lib/supabase/server";
 
@@ -25,14 +25,16 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
   }
 
   const { courseSlug, topicSlug } = await params;
-  const [course, courses] = await Promise.all([
+  const [course, courseLibrary] = await Promise.all([
     getCourseBySlug(courseSlug),
-    getAllCourses(),
+    getCourseLibraryState(),
   ]);
 
   if (!course) {
     notFound();
   }
+
+  const { courses, courseJobs, jobsEnabled, jobsMessage } = courseLibrary;
 
   const lesson = course.lessons.find((entry) => entry.slug === topicSlug);
   const node = course.nodes.find((entry) => entry.slug === topicSlug);
@@ -55,18 +57,15 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
       placeholderPracticeLesson?.practiceTest,
   };
 
-  const relatedTopics = lessonWithPractice.relatedSlugs
-    .map((relatedSlug) =>
-      course.nodes.find((courseNode) => courseNode.slug === relatedSlug),
-    )
-    .filter((topic): topic is NonNullable<typeof topic> => Boolean(topic));
-
   return (
     <main className="workspace-route">
       <section className="course-hero">
         <WorkspaceShell
           currentCourse={course}
           courses={courses}
+          courseJobs={courseJobs}
+          courseJobsEnabled={jobsEnabled}
+          courseJobsMessage={jobsMessage}
           userEmail={user.email ?? null}
           sidebarBottom={
             <CourseMapMinimap
@@ -98,49 +97,10 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
               <header className="learn-page-header">
                 <p className="learn-page-kicker">{node.duration}</p>
                 <h1>{node.label}</h1>
-                <p className="learn-page-headline">{lessonWithPractice.headline}</p>
-                <p className="learn-page-intro">{lessonWithPractice.intro}</p>
               </header>
 
               <div className="learn-page-grid">
                 <PracticeFlashcards lesson={lessonWithPractice} />
-
-                <aside className="learn-sidebar-card">
-                  <div>
-                    <p className="learn-sidebar-label">Key takeaways</p>
-                    <div className="learn-takeaways">
-                      {lessonWithPractice.takeaways.map((takeaway) => (
-                        <div key={takeaway} className="learn-takeaway">
-                          <ArrowUpRight aria-hidden="true" />
-                          <span>{takeaway}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <p className="learn-sidebar-label">Related topics</p>
-                    <div className="learn-related-links">
-                      {relatedTopics.map((topic) => (
-                        <Link
-                          key={topic.slug}
-                          href={`/workspace/${course.slug}/learn/${topic.slug}`}
-                          className="learn-related-link"
-                        >
-                          <span>{topic.label}</span>
-                          <ArrowUpRight aria-hidden="true" />
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="learn-sidebar-footer">
-                    <p>Continue exploring the map after reviewing this topic.</p>
-                    <Button asChild size="sm">
-                      <Link href={`/workspace/${course.slug}`}>Return to workspace</Link>
-                    </Button>
-                  </div>
-                </aside>
               </div>
             </div>
           </section>
