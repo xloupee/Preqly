@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { AlertCircle, FolderPlus, LoaderCircle, Plus, Sparkles, Trash2 } from "lucide-react";
+import { AlertCircle, FolderPlus, LoaderCircle, Plus, RefreshCcw, Sparkles, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getCourseJobStatusLabel, type CourseJobRecord } from "@/lib/course-job-types";
+import { getCourseJobStatusLabel, isCourseJobStuck, type CourseJobRecord } from "@/lib/course-job-types";
 import { mapCourseUploadError } from "@/lib/course-map-backend";
 import type { CourseRecord } from "@/lib/course-types";
 
@@ -21,6 +21,7 @@ type WorkspaceCourseSwitcherProps = {
 
 type FormStatus = "idle" | "submitting" | "error";
 type JobDeleteState = string | null;
+type JobRetryState = string | null;
 
 function formatCreatedAt(value: string) {
   const timestamp = new Date(value);
@@ -63,6 +64,7 @@ export function WorkspaceCourseSwitcher({
   const [formStatus, setFormStatus] = useState<FormStatus>("idle");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [deletingJobId, setDeletingJobId] = useState<JobDeleteState>(null);
+  const [retryingJobId, setRetryingJobId] = useState<JobRetryState>(null);
   const hasPendingJobs = courseJobs.some((job) => job.status === "queued" || job.status === "processing");
 
   useEffect(() => {
@@ -166,6 +168,40 @@ export function WorkspaceCourseSwitcher({
     }
   }
 
+  async function handleRetryJob(jobId: string) {
+    setRetryingJobId(jobId);
+    setMessage("");
+
+    try {
+      const response = await fetch("/api/course-jobs", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ jobId, action: "retry" }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; warning?: string | null; jobStarted?: boolean; job?: { id: string } }
+        | null;
+
+      if (!response.ok || !payload?.job?.id) {
+        throw new Error(payload?.error ?? "We could not retry this course job.");
+      }
+
+      setMessage(
+        payload.jobStarted === false
+          ? payload.warning ?? "Retry started, but the background generator still needs attention."
+          : "Course job re-queued. This list will update as the worker picks it up.",
+      );
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "We could not retry this course job.");
+    } finally {
+      setRetryingJobId(null);
+    }
+  }
+
   return (
     <section className="sidebar-class-group" aria-label="Your courses">
       <div className="sidebar-class-header">
@@ -213,7 +249,10 @@ export function WorkspaceCourseSwitcher({
         )}
 
         {courseJobs.map((job) => {
+          const isStuck = isCourseJobStuck(job);
           const isDeleting = deletingJobId === job.id;
+          const isRetrying = retryingJobId === job.id;
+          const canRetry = job.status === "error" || isStuck;
           const content = (
             <>
               <div className="sidebar-class-copy">
@@ -222,15 +261,15 @@ export function WorkspaceCourseSwitcher({
                   {job.errorMessage ?? job.syllabusFileName}
                 </span>
               </div>
-              <span className={`sidebar-class-status sidebar-job-status is-${job.status}`}>
+              <span className={`sidebar-class-status sidebar-job-status is-${job.status}${isStuck ? " is-stuck" : ""}`}>
                 {job.status === "processing" ? (
                   <LoaderCircle aria-hidden="true" className="animate-spin" />
-                ) : job.status === "queued" ? (
+                ) : job.status === "queued" && !isStuck ? (
                   <Sparkles aria-hidden="true" />
-                ) : job.status === "error" ? (
+                ) : job.status === "error" || isStuck ? (
                   <AlertCircle aria-hidden="true" />
                 ) : null}
-                {getCourseJobStatusLabel(job.status)}
+                {getCourseJobStatusLabel(job.status, isStuck)}
               </span>
             </>
           );
@@ -250,16 +289,31 @@ export function WorkspaceCourseSwitcher({
           return (
             <div
               key={job.id}
-              className={`sidebar-class-item is-job is-${job.status}`}
+              className={`sidebar-class-item is-job is-${job.status}${isStuck ? " is-stuck" : ""}`}
               aria-live={job.status === "processing" ? "polite" : undefined}
             >
               {content}
+              {canRetry ? (
+                <button
+                  type="button"
+                  className="sidebar-class-retry"
+                  aria-label={`Retry ${job.title}`}
+                  onClick={() => void handleRetryJob(job.id)}
+                  disabled={isRetrying || isDeleting}
+                >
+                  {isRetrying ? (
+                    <LoaderCircle aria-hidden="true" className="animate-spin" />
+                  ) : (
+                    <RefreshCcw aria-hidden="true" />
+                  )}
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="sidebar-class-delete"
                 aria-label={`Remove ${job.title}`}
                 onClick={() => void handleDeleteJob(job.id)}
-                disabled={isDeleting}
+                disabled={isDeleting || isRetrying}
               >
                 {isDeleting ? (
                   <LoaderCircle aria-hidden="true" className="animate-spin" />

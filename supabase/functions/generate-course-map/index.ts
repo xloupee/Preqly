@@ -92,9 +92,14 @@ const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 
 const supabaseUrl = Deno.env.get("SUPABASE_URL");
 const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const invokeSecret = Deno.env.get("COURSE_JOB_INVOKE_SECRET");
 
 if (!supabaseUrl || !serviceRoleKey) {
   throw new Error("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required.");
+}
+
+if (!invokeSecret) {
+  throw new Error("COURSE_JOB_INVOKE_SECRET is required.");
 }
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -624,6 +629,10 @@ async function processCourseJob(jobId: string, skipInitialStatusUpdate = false) 
 Deno.serve(async (request) => {
   if (request.method !== "POST") {
     return jsonResponse({ error: "Method not allowed." }, 405);
+  }
+
+  if (request.headers.get("x-course-job-secret") !== invokeSecret) {
+    return jsonResponse({ error: "Unauthorized." }, 401);
   }
 
   let payload: { jobId?: string } | null = null;

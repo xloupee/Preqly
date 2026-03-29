@@ -1054,6 +1054,11 @@ label[for],
   border-style: dashed;
 }
 
+.workspace-route .sidebar-class-item.is-job.is-stuck {
+  border-color: color-mix(in oklab, oklch(0.7 0.12 68) 48%, transparent);
+  background: color-mix(in oklab, var(--surface) 80%, oklch(0.96 0.03 85) 20%);
+}
+
 .workspace-route .sidebar-class-item.is-job.is-error {
   border-color: color-mix(in oklab, oklch(0.57 0.14 24) 38%, transparent);
 }
@@ -1109,10 +1114,15 @@ label[for],
   color: oklch(0.49 0.12 28);
 }
 
+.workspace-route .sidebar-job-status.is-stuck {
+  color: oklch(0.53 0.11 70);
+}
+
 .workspace-route .sidebar-job-status.is-ready {
   color: oklch(0.45 0.05 145);
 }
 
+.workspace-route .sidebar-class-retry,
 .workspace-route .sidebar-class-delete {
   display: inline-flex;
   align-items: center;
@@ -1131,8 +1141,18 @@ label[for],
     color 180ms ease;
 }
 
+.workspace-route .sidebar-class-retry:hover,
 .workspace-route .sidebar-class-delete:hover {
   transform: translateY(-1px);
+}
+
+.workspace-route .sidebar-class-retry:hover {
+  border-color: color-mix(in oklab, var(--ring) 45%, transparent);
+  background: color-mix(in oklab, var(--surface-strong) 82%, white 18%);
+  color: var(--foreground);
+}
+
+.workspace-route .sidebar-class-delete:hover {
   border-color: color-mix(in oklab, oklch(0.57 0.14 24) 45%, transparent);
   background: color-mix(in oklab, oklch(0.96 0.03 35) 92%, white 8%);
   color: oklch(0.52 0.13 24);
