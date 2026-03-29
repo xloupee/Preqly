@@ -1292,6 +1292,7 @@ label[for],
 }
 
 .workspace-route .sidebar-minimap-flow {
+  position: relative;
   height: 18rem;
   overflow: hidden;
   border: 1px solid color-mix(in oklab, var(--border) 70%, transparent);
@@ -1311,6 +1312,43 @@ label[for],
     18px 18px,
     auto,
     auto;
+  transform-origin: center center;
+}
+
+.workspace-route .sidebar-minimap-expand {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  z-index: 4;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  border: 1px solid color-mix(in oklab, var(--border) 76%, transparent);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface) 92%, white 8%);
+  color: var(--foreground-soft);
+  box-shadow:
+    0 12px 26px -22px var(--shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.55);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    color 180ms ease;
+}
+
+.workspace-route .sidebar-minimap-expand:hover {
+  transform: translateY(-1px) scale(1.03);
+  border-color: color-mix(in oklab, var(--ring) 70%, transparent);
+  background: color-mix(in oklab, var(--surface-strong) 88%, white 12%);
+  color: var(--foreground);
+}
+
+.workspace-route .sidebar-minimap-expand-icon {
+  width: 1rem;
+  height: 1rem;
 }
 
 .workspace-route .sidebar-minimap-flow .react-flow__renderer,
@@ -1700,6 +1738,10 @@ label[for],
     auto,
     auto,
     auto;
+}
+
+.workspace-route .workspace-canvas.is-entering-from-minimap {
+  animation: courseMapSurfaceEnter 1200ms cubic-bezier(0.2, 0.82, 0.2, 1) both;
 }
 
 .workspace-route .workspace-canvas::after {
@@ -3237,9 +3279,160 @@ label[for],
   }
 }
 
+@keyframes courseMapExpandOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) saturate(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.035);
+    filter: blur(6px) saturate(1.08);
+  }
+}
+
+@keyframes courseMapExpandIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+    filter: blur(10px) saturate(1.08);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) saturate(1);
+  }
+}
+
+@keyframes courseMapSurfaceEnter {
+  from {
+    opacity: 0.52;
+    transform: scale(1.04);
+    filter: blur(16px) saturate(1.08);
+  }
+  58% {
+    opacity: 1;
+    transform: scale(1.01);
+    filter: blur(9px) saturate(1.05);
+  }
+  94% {
+    opacity: 1;
+    transform: scale(0.996);
+    filter: blur(3px) saturate(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0) saturate(1);
+  }
+}
+
+.minimap-expand-transition {
+  position: fixed;
+  top: var(--minimap-start-top);
+  left: var(--minimap-start-left);
+  width: var(--minimap-start-width);
+  height: var(--minimap-start-height);
+  z-index: 120;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at center, rgba(166, 146, 105, 0.16) 0 1.05px, transparent 1.2px),
+    radial-gradient(circle at center, rgba(255, 255, 255, 0.34) 0 0.6px, transparent 0.8px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.44), transparent 18%),
+    color-mix(in oklab, var(--surface) 86%, white 14%);
+  box-shadow:
+    0 32px 64px -42px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(12px);
+  transition:
+    top 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    left 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    width 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    height 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    border-radius 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    box-shadow 620ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+.minimap-expand-transition.is-active {
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  box-shadow:
+    0 44px 90px -54px rgba(0, 0, 0, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.minimap-expand-transition-content {
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transform: translate3d(0, 0, 0) scale(1);
+  transition:
+    transform 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    filter 620ms cubic-bezier(0.2, 0.82, 0.2, 1),
+    opacity 620ms cubic-bezier(0.2, 0.82, 0.2, 1);
+}
+
+.minimap-expand-transition.is-active .minimap-expand-transition-content {
+  transform: translate3d(var(--minimap-content-shift-x, 36px), var(--minimap-content-shift-y, 22px), 0)
+    scale(1.08);
+  filter: blur(10px) saturate(1.08);
+  opacity: 0.8;
+}
+
+.is-minimap-expanding .workspace-route {
+  overflow: hidden;
+}
+
+.is-minimap-expanding .workspace-route > * {
+  filter: blur(4px) saturate(0.96);
+  opacity: 0.7;
+  transition:
+    filter 260ms ease,
+    opacity 260ms ease;
+}
+
+@supports (view-transition-name: none) {
+  ::view-transition-group(course-map-surface) {
+    animation-duration: 620ms;
+    animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  ::view-transition-old(course-map-surface),
+  ::view-transition-new(course-map-surface) {
+    transform-origin: center center;
+    overflow: clip;
+    box-shadow:
+      0 32px 70px -42px rgba(0, 0, 0, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  }
+
+  ::view-transition-old(course-map-surface) {
+    animation: courseMapExpandOut 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  ::view-transition-new(course-map-surface) {
+    animation: courseMapExpandIn 620ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .workspace-route .workspace-canvas::after {
     display: none;
+  }
+
+  .workspace-route .workspace-canvas.is-entering-from-minimap,
+  .minimap-expand-transition,
+  .minimap-expand-transition-content,
+  .is-minimap-expanding .workspace-route > * {
+    animation: none;
+    transition: none;
+    filter: none;
   }
 
   .workspace-route .course-edge-path-base.is-flowing-dotted,
@@ -3253,6 +3446,12 @@ label[for],
 
   .workspace-route .practice-flip-card-inner {
     transition: none;
+  }
+
+  ::view-transition-group(course-map-surface),
+  ::view-transition-old(course-map-surface),
+  ::view-transition-new(course-map-surface) {
+    animation: none;
   }
 }
 
