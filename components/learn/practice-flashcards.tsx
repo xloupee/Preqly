@@ -457,12 +457,26 @@ export function PracticeFlashcards({ lesson }: PracticeFlashcardsProps) {
           </div>
         ) : mode === "ai-video" ? (
           <div key={`ai-video-${cardMotionKey}`} className={`practice-card-stage is-${cardTransitionDirection}`}>
-            <div className="practice-empty-state practice-video-placeholder">
-              <p className="practice-empty-title">AI video placeholder</p>
-              <p className="practice-empty-copy">
-                A generated walkthrough video for this topic will appear here.
-              </p>
-            </div>
+            {lesson.aiVideoUrl ? (
+              <div className="practice-video-shell">
+                <video
+                  className="practice-video-player"
+                  controls
+                  preload="metadata"
+                  playsInline
+                  src={lesson.aiVideoUrl}
+                >
+                  Your browser does not support embedded video playback.
+                </video>
+              </div>
+            ) : (
+              <div className="practice-empty-state practice-video-placeholder">
+                <p className="practice-empty-title">AI video placeholder</p>
+                <p className="practice-empty-copy">
+                  A generated walkthrough video for this topic will appear here.
+                </p>
+              </div>
+            )}
           </div>
         ) : activeCard ? (
           <div

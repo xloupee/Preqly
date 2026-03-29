@@ -22,6 +22,7 @@ export type CourseMapLesson = {
   }>;
   takeaways: string[];
   relatedSlugs: string[];
+  aiVideoUrl?: string;
   practiceDeck?: {
     title: string;
     summary: string;

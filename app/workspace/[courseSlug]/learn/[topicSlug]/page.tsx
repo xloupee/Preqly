@@ -8,6 +8,7 @@ import { CourseMapMinimap } from "@/components/course-map-minimap";
 import { getCourseLessonBySlug } from "@/lib/course-map-data";
 import { getCourseBySlug, getCourseLibraryState } from "@/lib/course-library";
 import { loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
+import { loadPersonalGraphForCurrentUser } from "@/lib/personal-graphs";
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { createClient } from "@/lib/supabase/server";
 
@@ -36,9 +37,11 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
   }
 
   const { courses, courseJobs, jobsEnabled, jobsMessage } = courseLibrary;
+  const mapKey = `course:${course.slug}`;
+  const { course: resolvedCourse } = await loadPersonalGraphForCurrentUser(course, mapKey);
 
-  const lesson = course.lessons.find((entry) => entry.slug === topicSlug);
-  const node = course.nodes.find((entry) => entry.slug === topicSlug);
+  const lesson = resolvedCourse.lessons.find((entry) => entry.slug === topicSlug);
+  const node = resolvedCourse.nodes.find((entry) => entry.slug === topicSlug);
   const seededLesson = getCourseLessonBySlug(topicSlug);
   const placeholderPracticeLesson = getCourseLessonBySlug("algorithms");
 
@@ -46,16 +49,16 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
     notFound();
   }
 
-  const mapKey = `course:${course.slug}`;
   const { positions: initialLayoutPositions } =
     await loadMapLayoutForCurrentUser(mapKey);
-  const minimapNodes = course.nodes.map((courseNode) => ({
+  const minimapNodes = resolvedCourse.nodes.map((courseNode) => ({
     ...courseNode,
     position: initialLayoutPositions[courseNode.id] ?? courseNode.position,
   }));
 
   const lessonWithPractice = {
     ...lesson,
+    aiVideoUrl: lesson.aiVideoUrl ?? seededLesson?.aiVideoUrl,
     practiceDeck:
       lesson.practiceDeck ??
       seededLesson?.practiceDeck ??
@@ -70,7 +73,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
     <main className="workspace-route">
       <section className="course-hero">
         <WorkspaceShell
-          currentCourse={course}
+          currentCourse={resolvedCourse}
           courses={courses}
           courseJobs={courseJobs}
           courseJobsEnabled={jobsEnabled}
@@ -78,9 +81,9 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
           userEmail={user.email ?? null}
           sidebarBottom={
             <CourseMapMinimap
-              courseSlug={course.slug}
+              courseSlug={resolvedCourse.slug}
               nodes={minimapNodes}
-              edges={course.edges}
+              edges={resolvedCourse.edges}
               activeSlug={topicSlug}
             />
           }
@@ -92,7 +95,7 @@ export default async function LearnTopicPage({ params }: LearnPageProps) {
             <div className="learn-page">
               <div className="learn-page-actions">
                 <Button asChild size="sm" variant="secondary">
-                  <Link href={`/workspace/${course.slug}`}>
+                  <Link href={`/workspace/${resolvedCourse.slug}`}>
                     <ArrowLeft aria-hidden="true" />
                     Back to map
                   </Link>
