@@ -9,11 +9,17 @@ import { createClient } from "@/lib/supabase/server";
 
 type CourseWorkspacePageProps = {
   params: Promise<{ courseSlug: string }>;
+  searchParams?: Promise<{
+    focus?: string;
+    fromMinimap?: string;
+  }>;
 };
 
 export default async function CourseWorkspacePage({
   params,
+  searchParams,
 }: CourseWorkspacePageProps) {
+  const resolvedSearchParams = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,6 +39,9 @@ export default async function CourseWorkspacePage({
     notFound();
   }
   const { courses, courseJobs, jobsEnabled, jobsMessage } = courseLibrary;
+
+  const focusedSlug = resolvedSearchParams?.focus ?? null;
+  const animateFromMinimap = resolvedSearchParams?.fromMinimap === "1";
 
   const mapKey = `course:${course.slug}`;
   const [
@@ -62,6 +71,8 @@ export default async function CourseWorkspacePage({
           graphMessage={graphSchemaMessage}
           userEmail={user.email ?? null}
           mapKey={mapKey}
+          initialSelectedSlug={focusedSlug}
+          animateFromMinimap={animateFromMinimap}
           initialLayoutPositions={initialLayoutPositions}
           layoutPersistenceEnabled={layoutSchemaReady}
           layoutMessage={layoutSchemaMessage}

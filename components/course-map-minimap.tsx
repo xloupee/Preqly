@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import ReactFlow, {
@@ -43,6 +43,32 @@ type HandleId =
   | "bottom-target"
   | "left-source"
   | "left-target";
+
+function MinimapExpandIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 16"
+      fill="none"
+      className="sidebar-minimap-expand-icon"
+    >
+      <path
+        d="M8 8L12.75 3.25M9.4 3.25h3.35V6.6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8 8L3.25 12.75M6.6 12.75H3.25V9.4"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 function MinimapNode({ data }: NodeProps<MinimapNodeData>) {
   return (
@@ -142,6 +168,7 @@ function CourseMapMinimapCanvas({
   const router = useRouter();
   const graphApi = useReactFlow<MinimapNodeData>();
   const nodesInitialized = useNodesInitialized();
+  const flowRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
   const deferredQuery = useDeferredValue(query);
   const normalizedQuery = deferredQuery.trim().toLowerCase();
@@ -256,6 +283,66 @@ function CourseMapMinimapCanvas({
     return () => window.clearTimeout(timer);
   }, [activeSlug, courseNodes, graphApi, nodesInitialized, normalizedQuery, rankedMatches]);
 
+  const handleExpandToMap = () => {
+    const pushDelayMs = 430;
+    const overlaySettleDelayMs = 1550;
+    const overlayCleanupDelayMs = 1880;
+    const focusedSlug =
+      (normalizedQuery && rankedMatches.length > 0
+        ? courseNodes.find((node) => node.id === rankedMatches[0]?.id)?.slug
+        : null) ?? activeSlug;
+    const destination = focusedSlug
+      ? `/workspace/${courseSlug}?focus=${focusedSlug}&fromMinimap=1`
+      : `/workspace/${courseSlug}?fromMinimap=1`;
+    const flowElement = flowRef.current;
+
+    if (!flowElement || typeof document === "undefined") {
+      router.push(destination);
+      return;
+    }
+
+    const rect = flowElement.getBoundingClientRect();
+    const viewportCenterX = window.innerWidth / 2;
+    const viewportCenterY = window.innerHeight / 2;
+    const rectCenterX = rect.left + rect.width / 2;
+    const rectCenterY = rect.top + rect.height / 2;
+    const contentShiftX = Math.max(28, (viewportCenterX - rectCenterX) * 0.22);
+    const contentShiftY = Math.max(18, (viewportCenterY - rectCenterY) * 0.14);
+    const overlay = document.createElement("div");
+    overlay.className = "minimap-expand-transition";
+    overlay.style.setProperty("--minimap-start-top", `${rect.top}px`);
+    overlay.style.setProperty("--minimap-start-left", `${rect.left}px`);
+    overlay.style.setProperty("--minimap-start-width", `${rect.width}px`);
+    overlay.style.setProperty("--minimap-start-height", `${rect.height}px`);
+    overlay.style.setProperty("--minimap-content-shift-x", `${contentShiftX}px`);
+    overlay.style.setProperty("--minimap-content-shift-y", `${contentShiftY}px`);
+
+    const snapshot = flowElement.cloneNode(true) as HTMLElement;
+    snapshot.classList.add("minimap-expand-transition-content");
+    snapshot.querySelector(".sidebar-minimap-expand")?.remove();
+    overlay.appendChild(snapshot);
+
+    document.body.appendChild(overlay);
+    document.documentElement.classList.add("is-minimap-expanding");
+
+    requestAnimationFrame(() => {
+      overlay.classList.add("is-active");
+    });
+
+    window.setTimeout(() => {
+      router.push(destination);
+    }, pushDelayMs);
+
+    window.setTimeout(() => {
+      overlay.classList.add("is-settling");
+    }, overlaySettleDelayMs);
+
+    window.setTimeout(() => {
+      overlay.remove();
+      document.documentElement.classList.remove("is-minimap-expanding");
+    }, overlayCleanupDelayMs);
+  };
+
   return (
     <section className="sidebar-minimap-card" aria-label="Course minimap">
       <div className="sidebar-minimap-copy">
@@ -272,7 +359,20 @@ function CourseMapMinimapCanvas({
             aria-label="Search minimap topics"
           />
         </label>
-        <div className="sidebar-minimap-flow">
+        <div
+          ref={flowRef}
+          className="sidebar-minimap-flow"
+          style={{ viewTransitionName: "course-map-surface" }}
+        >
+          <button
+            type="button"
+            className="sidebar-minimap-expand"
+            onClick={handleExpandToMap}
+            aria-label="Expand to full map"
+            title="Open full map"
+          >
+            <MinimapExpandIcon />
+          </button>
           <ReactFlow
             fitView
             fitViewOptions={{ padding: 0.18, minZoom: 0.32 }}

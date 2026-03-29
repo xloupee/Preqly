@@ -77,6 +77,8 @@ type CourseMapWorkspaceProps = {
   graphMessage?: string | null;
   userEmail?: string | null;
   mapKey: string | null;
+  initialSelectedSlug?: string | null;
+  animateFromMinimap?: boolean;
   initialLayoutPositions?: MapLayoutPositions;
   initialCompletedNodeIds?: string[];
   layoutPersistenceEnabled?: boolean;
@@ -276,8 +278,15 @@ function getDefaultSelectedIdFromNodes(nodes: CourseMapNode[]) {
   return nodes.find((node) => node.status === "foundation")?.id ?? nodes[0]?.id ?? "";
 }
 
-function getDefaultSelectedId(course: CourseRecord) {
-  return getDefaultSelectedIdFromNodes(course.nodes);
+function getDefaultSelectedId(course: CourseRecord, initialSelectedSlug?: string | null) {
+  if (initialSelectedSlug) {
+    const focusedNode = course.nodes.find((node) => node.slug === initialSelectedSlug);
+    if (focusedNode) {
+      return focusedNode.id;
+    }
+  }
+
+  return course.nodes.find((node) => node.status === "foundation")?.id ?? course.nodes[0]?.id ?? "";
 }
 
 function buildInitialNodes(
@@ -428,6 +437,8 @@ function MapCanvas({
   graphMessage = null,
   userEmail,
   mapKey,
+  initialSelectedSlug = null,
+  animateFromMinimap = false,
   initialLayoutPositions = {},
   initialCompletedNodeIds = [],
   layoutPersistenceEnabled = true,
@@ -438,11 +449,16 @@ function MapCanvas({
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
   const actionsMenuRef = useRef<HTMLDivElement>(null);
-  const defaultSelectedId = useMemo(() => getDefaultSelectedId(course), [course]);
   const [graphNodesData, setGraphNodesData] = useState<CourseMapNode[]>(course.nodes);
   const [graphEdgesData, setGraphEdgesData] = useState<CourseMapEdge[]>(course.edges);
   const [graphLessonsData, setGraphLessonsData] = useState<CourseMapLesson[]>(course.lessons);
+  const defaultSelectedId = useMemo(
+    () => getDefaultSelectedId(course, initialSelectedSlug),
+    [course, initialSelectedSlug],
+  );
   const [selectedId, setSelectedId] = useState<string>(defaultSelectedId);
+  const [pendingMinimapArrival, setPendingMinimapArrival] = useState(animateFromMinimap);
+  const [isEnteringFromMinimap, setIsEnteringFromMinimap] = useState(animateFromMinimap);
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState(false);
@@ -521,7 +537,7 @@ function MapCanvas({
     const nextSelectedId =
       isSameMap && currentSelection && course.nodes.some((node) => node.id === currentSelection)
         ? currentSelection
-        : getDefaultSelectedId(course);
+        : getDefaultSelectedId(course, initialSelectedSlug);
     const nextNodes = buildInitialNodes(course.nodes, initialLayoutPositions, nextSelectedId);
     const nextSnapshot = buildPositionSnapshot(nextNodes);
 
@@ -549,12 +565,31 @@ function MapCanvas({
     graphMessage,
     graphPersistenceEnabled,
     initialLayoutPositions,
+    initialSelectedSlug,
     layoutMessage,
     layoutPersistenceEnabled,
     layoutSignature,
     mapKey,
     setNodes,
   ]);
+
+  useEffect(() => {
+    setPendingMinimapArrival(animateFromMinimap);
+    setIsEnteringFromMinimap(animateFromMinimap);
+  }, [animateFromMinimap, initialSelectedSlug, mapKey]);
+
+  useEffect(() => {
+    if (!pendingMinimapArrival) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setIsEnteringFromMinimap(false);
+      setPendingMinimapArrival(false);
+    }, 1200);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pendingMinimapArrival]);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -773,6 +808,45 @@ function MapCanvas({
     });
     setSelectedId(firstMatch.id);
   }, [graphApi, graphNodesData, nodes, normalizedQuery, rankedMatches]);
+
+  useEffect(() => {
+    if (!selectedId || normalizedQuery) {
+      return;
+    }
+
+    const selectedNode = nodes.find((node) => node.id === selectedId);
+    if (!selectedNode) {
+      return;
+    }
+
+    if (pendingMinimapArrival) {
+      const startOffsetX = 600;
+      const startOffsetY = 600;
+
+      graphApi.setCenter(selectedNode.position.x + startOffsetX, selectedNode.position.y + startOffsetY, {
+        duration: 0,
+        zoom: 0.86,
+      });
+
+      const timer = window.setTimeout(() => {
+        graphApi.setCenter(selectedNode.position.x + 82, selectedNode.position.y + 48, {
+          duration: 1200,
+          zoom: 0.9,
+        });
+      }, 70);
+
+      return () => window.clearTimeout(timer);
+    }
+
+    const timer = window.setTimeout(() => {
+      graphApi.setCenter(selectedNode.position.x + 82, selectedNode.position.y + 48, {
+        duration: 420,
+        zoom: 0.84,
+      });
+    }, 70);
+
+    return () => window.clearTimeout(timer);
+  }, [graphApi, nodes, normalizedQuery, pendingMinimapArrival, selectedId]);
 
   useEffect(() => {
     setNodes((currentNodes) =>
@@ -1465,7 +1539,14 @@ function MapCanvas({
       <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
         <div
           ref={canvasRef}
-          className={`workspace-canvas${isPointerInside ? " is-pointer-active" : ""}`}
+          className={[
+            "workspace-canvas",
+            isPointerInside ? "is-pointer-active" : "",
+            isEnteringFromMinimap ? "is-entering-from-minimap" : "",
+          ]
+            .filter(Boolean)
+            .join(" ")}
+          style={{ viewTransitionName: "course-map-surface" }}
           onPointerMove={handleCanvasPointerMove}
           onPointerLeave={handleCanvasPointerLeave}
         >
