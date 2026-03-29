@@ -7,6 +7,7 @@ import {
   Check,
   Database,
   LoaderCircle,
+  Menu,
   Minus,
   Plus,
   RotateCcw,
@@ -399,6 +400,7 @@ function MapCanvas({
 }: CourseMapWorkspaceProps) {
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
   const defaultSelectedId = useMemo(() => getDefaultSelectedId(course), [course]);
   const [graphNodesData, setGraphNodesData] = useState<CourseMapNode[]>(course.nodes);
   const [graphEdgesData, setGraphEdgesData] = useState<CourseMapEdge[]>(course.edges);
@@ -407,8 +409,10 @@ function MapCanvas({
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
   const [newNodeTitle, setNewNodeTitle] = useState("");
   const [insertionEdgeId, setInsertionEdgeId] = useState<string>("");
+  const [pendingBridgeSourceId, setPendingBridgeSourceId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(layoutPersistenceEnabled ? null : layoutMessage);
   const [isSavingGraph, setIsSavingGraph] = useState(false);
@@ -447,6 +451,10 @@ function MapCanvas({
   const positionSnapshot = useMemo(() => buildPositionSnapshot(nodes), [nodes]);
   const completedNodeIdSet = useMemo(() => new Set(completedNodeIds), [completedNodeIds]);
   const completedCount = completedNodeIds.length;
+  const pendingBridgeReachableIds = useMemo(
+    () => (pendingBridgeSourceId ? collectConnectedNodeIds(pendingBridgeSourceId, graphEdgesData) : new Set<string>()),
+    [graphEdgesData, pendingBridgeSourceId],
+  );
 
   useEffect(() => {
     const isSameMap = hydratedMapKeyRef.current === mapKey;
@@ -477,6 +485,8 @@ function MapCanvas({
 
     setNodes(nextNodes);
     setSelectedId(nextSelectedId);
+    setPendingBridgeSourceId(null);
+    setIsActionsMenuOpen(false);
     if (!isSameMap) {
       setQuery("");
     }
@@ -524,6 +534,32 @@ function MapCanvas({
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isActionsMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!actionsMenuRef.current?.contains(event.target as globalThis.Node)) {
+        setIsActionsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsActionsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isActionsMenuOpen]);
 
   const rankedMatches = useMemo(() => {
     if (!normalizedQuery) {
@@ -692,6 +728,7 @@ function MapCanvas({
       const emphasizedBySearch = matchedIds.size > 0 && matchedIds.has(edge.source) && matchedIds.has(edge.target);
       const directlyUpstream = edge.target === selectedId;
       const directlyDownstream = edge.source === selectedId;
+      const isBridgeEdge = edge.id.startsWith("bridge-");
       const { sourceHandle, targetHandle } =
         sourceNode && targetNode
           ? pickHandles(sourceNode.position, targetNode.position)
@@ -713,24 +750,33 @@ function MapCanvas({
             active || emphasizedBySearch ? "is-active" : "",
             directlyUpstream ? "is-upstream" : "",
             directlyDownstream ? "is-downstream" : "",
+            isBridgeEdge ? "is-bridge" : "",
           ]
             .filter(Boolean)
             .join(" "),
-          flowVariant: directlyDownstream ? "solid" : directlyUpstream ? "dotted" : "none",
+          flowVariant: directlyDownstream ? "solid" : directlyUpstream || isBridgeEdge ? "dotted" : "none",
         },
         style: {
           stroke:
             directlyUpstream || directlyDownstream || emphasizedBySearch
               ? "rgba(122, 103, 71, 0.84)"
+              : isBridgeEdge
+                ? "rgba(122, 103, 71, 0.72)"
               : active
                 ? "rgba(122, 103, 71, 0.66)"
                 : "rgba(122, 103, 71, 0.44)",
           strokeWidth:
-            directlyDownstream ? 3.35 : directlyUpstream ? 3.05 : active || emphasizedBySearch ? 2.4 : 2,
+            directlyDownstream
+              ? 3.35
+              : directlyUpstream || isBridgeEdge
+                ? 3.05
+                : active || emphasizedBySearch
+                  ? 2.4
+                  : 2,
           strokeDasharray:
             directlyDownstream
               ? undefined
-              : directlyUpstream
+              : directlyUpstream || isBridgeEdge
                 ? "7 11"
                 : active || emphasizedBySearch
                   ? "5 9"
@@ -746,6 +792,23 @@ function MapCanvas({
   }, [connectedIds, graphEdgesData, matchedIds, nodeLookup, selectedId]);
 
   const selectedNode = graphNodesData.find((node) => node.id === selectedId) ?? graphNodesData[0];
+  const pendingBridgeSourceNode = pendingBridgeSourceId
+    ? graphNodesData.find((node) => node.id === pendingBridgeSourceId) ?? null
+    : null;
+  const existingBridgeEdge =
+    pendingBridgeSourceId && selectedNode
+      ? graphEdgesData.find(
+          (edge) =>
+            edge.id.startsWith("bridge-") &&
+            ((edge.source === pendingBridgeSourceId && edge.target === selectedNode.id) ||
+              (edge.source === selectedNode.id && edge.target === pendingBridgeSourceId)),
+        ) ?? null
+      : null;
+  const canBridgeSelectedNode =
+    !!pendingBridgeSourceNode &&
+    !!selectedNode &&
+    pendingBridgeSourceId !== selectedNode.id &&
+    !pendingBridgeReachableIds.has(selectedNode.id);
   const insertionOptions = useMemo<InsertionOption[]>(() => {
     if (!selectedNode) {
       return [];
@@ -1045,6 +1108,68 @@ function MapCanvas({
     }
   };
 
+  const handleBridgeAction = async () => {
+    if (!selectedNode) {
+      return;
+    }
+
+    if (!pendingBridgeSourceNode) {
+      setPendingBridgeSourceId(selectedNode.id);
+      setGraphFeedbackMessage(
+        `Bridge mode armed from ${selectedNode.label}. Pick a node in the other disconnected cluster.`,
+      );
+      return;
+    }
+
+    if (pendingBridgeSourceId === selectedNode.id) {
+      setPendingBridgeSourceId(null);
+      setGraphFeedbackMessage("Bridge mode cancelled.");
+      return;
+    }
+
+    if (existingBridgeEdge) {
+      const previousGraphEdges = graphEdgesData;
+      const nextGraphEdges = graphEdgesData.filter((edge) => edge.id !== existingBridgeEdge.id);
+
+      setGraphEdgesData(nextGraphEdges);
+      setPendingBridgeSourceId(null);
+      setGraphFeedbackMessage("Bridge removed.");
+
+      const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData);
+      if (!didSave) {
+        setGraphEdgesData(previousGraphEdges);
+      }
+      return;
+    }
+
+    if (!canBridgeSelectedNode) {
+      setGraphFeedbackMessage("Choose a node from a different disconnected tree.");
+      return;
+    }
+
+    const previousGraphEdges = graphEdgesData;
+    const nextGraphEdges = [
+      ...graphEdgesData,
+      {
+        id: `bridge-${crypto.randomUUID()}`,
+        source: pendingBridgeSourceNode.id,
+        target: selectedNode.id,
+        label: "bridge",
+      },
+    ];
+
+    setGraphEdgesData(nextGraphEdges);
+    setPendingBridgeSourceId(null);
+    setGraphFeedbackMessage(
+      `Connected ${pendingBridgeSourceNode.label} to ${selectedNode.label}.`,
+    );
+
+    const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData);
+    if (!didSave) {
+      setGraphEdgesData(previousGraphEdges);
+    }
+  };
+
   const handleResetLayout = async () => {
     const defaultPositions = getDefaultPositions(graphNodesData);
     const resetNodes = buildInitialNodes(graphNodesData, defaultPositions, selectedId);
@@ -1199,29 +1324,83 @@ function MapCanvas({
                 aria-label="Search map nodes"
               />
             </label>
-            <button
-              type="button"
-              className="graph-control-button graph-control-reset"
-              onClick={handleResetLayout}
-              aria-label="Reset layout"
-            >
-              <RotateCcw aria-hidden="true" />
-              <span>Reset layout</span>
-            </button>
-            <button
-              type="button"
-              className="graph-control-button graph-control-create"
-              onClick={() => {
-                setIsAddNodeModalOpen(true);
-                setInsertionEdgeId("");
-                setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
-              }}
-              aria-label="Insert node"
-              disabled={!graphPersistenceEnabled || isSavingGraph}
-            >
-              <Plus aria-hidden="true" />
-              <span>Insert node</span>
-            </button>
+            <div ref={actionsMenuRef} className={`graph-actions-menu${isActionsMenuOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className="graph-control-button graph-control-menu"
+                aria-label="Open canvas actions"
+                aria-expanded={isActionsMenuOpen}
+                onClick={() => setIsActionsMenuOpen((current) => !current)}
+              >
+                <Menu aria-hidden="true" />
+              </button>
+
+              {isActionsMenuOpen ? (
+                <div className="graph-actions-dropdown" role="menu" aria-label="Canvas actions">
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleResetLayout();
+                      setIsActionsMenuOpen(false);
+                    }}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    <span>Reset layout</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsAddNodeModalOpen(true);
+                      setInsertionEdgeId("");
+                      setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <Plus aria-hidden="true" />
+                    <span>Insert node</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleBridgeAction();
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <span className="graph-actions-dot" aria-hidden="true" />
+                    <span>
+                      {existingBridgeEdge
+                        ? "Remove bridge"
+                        : pendingBridgeSourceId === selectedNode.id
+                          ? "Cancel bridge"
+                          : pendingBridgeSourceId
+                            ? "Connect here"
+                            : "Start bridge"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item is-danger"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleDeleteSelectedNode();
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    <span>Delete node</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <ReactFlow
@@ -1266,6 +1445,17 @@ function MapCanvas({
                 {completedCount} / {graphNodesData.length} done
               </span>
             </div>
+            <p className="node-detail-bridge-note">
+              {pendingBridgeSourceNode
+                ? pendingBridgeSourceId === selectedNode.id
+                  ? "Bridge mode is armed on this node. Pick another node in the other disconnected tree, or cancel."
+                  : existingBridgeEdge
+                    ? `This bridge already links ${pendingBridgeSourceNode.label} and ${selectedNode.label}.`
+                    : canBridgeSelectedNode
+                      ? `Ready to connect ${pendingBridgeSourceNode.label} and ${selectedNode.label}.`
+                      : "Choose a node in a different disconnected tree to create a bridge."
+                : "Start bridge to connect this node to another disconnected tree."}
+            </p>
             <div className="node-outcomes">
               {selectedNode.outcomes.map((outcome) => (
                 <div key={outcome} className="node-outcome-item">
@@ -1298,26 +1488,6 @@ function MapCanvas({
                   </>
                 ) : (
                   "Mark done"
-                )}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                className="node-detail-action-button"
-                variant="secondary"
-                onClick={handleDeleteSelectedNode}
-                disabled={!graphPersistenceEnabled || isSavingGraph}
-              >
-                {isSavingGraph ? (
-                  <>
-                    <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
-                    Saving
-                  </>
-                ) : (
-                  <>
-                    Delete node
-                    <Trash2 aria-hidden="true" />
-                  </>
                 )}
               </Button>
             </div>
