@@ -20,6 +20,7 @@ export type CourseMapLesson = {
   }>;
   takeaways: string[];
   relatedSlugs: string[];
+  aiVideoUrl?: string;
   practiceDeck?: {
     title: string;
     summary: string;
@@ -291,6 +292,8 @@ export const courseMapLessons: CourseMapLesson[] = [
       "Bounds safety is a conceptual skill, not just a syntax rule.",
     ],
     relatedSlugs: ["algorithms", "memory"],
+    aiVideoUrl:
+      "https://szhqzkpznawqvlmaqafj.supabase.co/storage/v1/object/public/ai-video/ai-video.mp4",
   },
   {
     slug: "algorithms",

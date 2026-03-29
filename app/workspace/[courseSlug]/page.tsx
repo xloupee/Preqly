@@ -4,6 +4,7 @@ import { CourseMapWorkspace } from "@/components/course-map-workspace";
 import { getCourseBySlug, getCourseLibraryState } from "@/lib/course-library";
 import { loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
 import { loadNodeProgressForCurrentUser } from "@/lib/node-progress";
+import { loadPersonalGraphForCurrentUser } from "@/lib/personal-graphs";
 import { createClient } from "@/lib/supabase/server";
 
 type CourseWorkspacePageProps = {
@@ -44,6 +45,7 @@ export default async function CourseWorkspacePage({
 
   const mapKey = `course:${course.slug}`;
   const [
+    { course: resolvedCourse, schemaReady: graphSchemaReady, schemaMessage: graphSchemaMessage },
     { positions: initialLayoutPositions, schemaReady: layoutSchemaReady, schemaMessage: layoutSchemaMessage },
     {
       completedNodeIds: initialCompletedNodeIds,
@@ -51,6 +53,7 @@ export default async function CourseWorkspacePage({
       schemaMessage: progressSchemaMessage,
     },
   ] = await Promise.all([
+    loadPersonalGraphForCurrentUser(course, mapKey),
     loadMapLayoutForCurrentUser(mapKey),
     loadNodeProgressForCurrentUser(mapKey),
   ]);
@@ -59,11 +62,13 @@ export default async function CourseWorkspacePage({
     <main className="workspace-route">
       <section className="course-hero">
         <CourseMapWorkspace
-          course={course}
+          course={resolvedCourse}
           courses={courses}
           courseJobs={courseJobs}
           courseJobsEnabled={jobsEnabled}
           courseJobsMessage={jobsMessage}
+          graphPersistenceEnabled={graphSchemaReady}
+          graphMessage={graphSchemaMessage}
           userEmail={user.email ?? null}
           mapKey={mapKey}
           initialSelectedSlug={focusedSlug}

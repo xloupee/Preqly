@@ -6,11 +6,15 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   Check,
   Database,
+  History,
   LoaderCircle,
+  Menu,
   Minus,
   Plus,
   RotateCcw,
   Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import ReactFlow, {
   ConnectionLineType,
@@ -30,9 +34,14 @@ import "reactflow/dist/style.css";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { CourseJobRecord } from "@/lib/course-job-types";
 import type { MapLayoutPositions } from "@/lib/map-layouts";
-import type { CourseMapEdge, CourseMapNode, CourseRecord } from "@/lib/course-types";
+import type {
+  PersonalGraphEditType,
+  PersonalGraphVersionRecord,
+} from "@/lib/personal-graph-versions";
+import type { CourseMapEdge, CourseMapLesson, CourseMapNode, CourseRecord } from "@/lib/course-types";
 
 type GraphNodeData = CourseMapNode & {
   active: boolean;
@@ -64,6 +73,8 @@ type CourseMapWorkspaceProps = {
   courseJobs?: CourseJobRecord[];
   courseJobsEnabled?: boolean;
   courseJobsMessage?: string | null;
+  graphPersistenceEnabled?: boolean;
+  graphMessage?: string | null;
   userEmail?: string | null;
   mapKey: string | null;
   initialSelectedSlug?: string | null;
@@ -77,6 +88,14 @@ type CourseMapWorkspaceProps = {
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type InsertionOption = {
+  edgeId: string;
+  sourceNodeId: string;
+  targetNodeId: string;
+  sourceLabel: string;
+  targetLabel: string;
+  direction: "upstream" | "downstream";
+};
 
 function getNodeSearchScore(node: CourseMapNode, normalizedQuery: string) {
   if (!normalizedQuery) {
@@ -255,6 +274,10 @@ const edgeTypes = {
   course: AnimatedCourseEdge,
 };
 
+function getDefaultSelectedIdFromNodes(nodes: CourseMapNode[]) {
+  return nodes.find((node) => node.status === "foundation")?.id ?? nodes[0]?.id ?? "";
+}
+
 function getDefaultSelectedId(course: CourseRecord, initialSelectedSlug?: string | null) {
   if (initialSelectedSlug) {
     const focusedNode = course.nodes.find((node) => node.slug === initialSelectedSlug);
@@ -267,11 +290,11 @@ function getDefaultSelectedId(course: CourseRecord, initialSelectedSlug?: string
 }
 
 function buildInitialNodes(
-  course: CourseRecord,
+  courseNodes: CourseMapNode[],
   initialLayoutPositions: MapLayoutPositions = {},
-  selectedId = getDefaultSelectedId(course),
+  selectedId = getDefaultSelectedIdFromNodes(courseNodes),
 ): Node<GraphNodeData>[] {
-  return course.nodes.map((node) => ({
+  return courseNodes.map((node) => ({
     id: node.id,
     type: "course",
     draggable: true,
@@ -322,8 +345,8 @@ function buildPositionsRecord(nodes: Node<GraphNodeData>[]): MapLayoutPositions 
   return Object.fromEntries(nodes.map((node) => [node.id, { x: node.position.x, y: node.position.y }]));
 }
 
-function getDefaultPositions(course: CourseRecord): MapLayoutPositions {
-  return Object.fromEntries(course.nodes.map((node) => [node.id, { ...node.position }]));
+function getDefaultPositions(courseNodes: CourseMapNode[]): MapLayoutPositions {
+  return Object.fromEntries(courseNodes.map((node) => [node.id, { ...node.position }]));
 }
 
 function buildLayoutSignature(positions: MapLayoutPositions = {}) {
@@ -338,12 +361,80 @@ function buildLayoutSignature(positions: MapLayoutPositions = {}) {
   );
 }
 
+function buildGraphSignature(course: CourseRecord) {
+  return JSON.stringify({
+    nodes: course.nodes,
+    edges: course.edges,
+    lessons: course.lessons,
+  });
+}
+
+function slugifyNodeLabel(value: string) {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+
+  return normalized || "custom-topic";
+}
+
+function createUniqueNodeSlug(label: string, nodes: CourseMapNode[]) {
+  const baseSlug = slugifyNodeLabel(label);
+  const existingSlugs = new Set(nodes.map((node) => node.slug));
+
+  if (!existingSlugs.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let suffix = 2;
+  while (existingSlugs.has(`${baseSlug}-${suffix}`)) {
+    suffix += 1;
+  }
+
+  return `${baseSlug}-${suffix}`;
+}
+
+function formatHistoryTimestamp(value: string) {
+  const timestamp = new Date(value);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Just now";
+  }
+
+  return timestamp.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getHistoryBadgeLabel(editType: PersonalGraphEditType) {
+  switch (editType) {
+    case "insert_node":
+      return "Insert";
+    case "delete_node":
+      return "Delete";
+    case "create_bridge":
+      return "Bridge";
+    case "remove_bridge":
+      return "Unbridge";
+    case "restore_version":
+      return "Restore";
+    default:
+      return "Edit";
+  }
+}
+
 function MapCanvas({
   course,
   courses,
   courseJobs,
   courseJobsEnabled = true,
   courseJobsMessage = null,
+  graphPersistenceEnabled = true,
+  graphMessage = null,
   userEmail,
   mapKey,
   initialSelectedSlug = null,
@@ -357,6 +448,10 @@ function MapCanvas({
 }: CourseMapWorkspaceProps) {
   const graphApi = useReactFlow<GraphNodeData>();
   const canvasRef = useRef<HTMLDivElement>(null);
+  const actionsMenuRef = useRef<HTMLDivElement>(null);
+  const [graphNodesData, setGraphNodesData] = useState<CourseMapNode[]>(course.nodes);
+  const [graphEdgesData, setGraphEdgesData] = useState<CourseMapEdge[]>(course.edges);
+  const [graphLessonsData, setGraphLessonsData] = useState<CourseMapLesson[]>(course.lessons);
   const defaultSelectedId = useMemo(
     () => getDefaultSelectedId(course, initialSelectedSlug),
     [course, initialSelectedSlug],
@@ -366,43 +461,72 @@ function MapCanvas({
   const [isEnteringFromMinimap, setIsEnteringFromMinimap] = useState(animateFromMinimap);
   const [query, setQuery] = useState("");
   const [isPointerInside, setIsPointerInside] = useState(false);
+  const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState(false);
+  const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+  const [newNodeTitle, setNewNodeTitle] = useState("");
+  const [insertionEdgeId, setInsertionEdgeId] = useState<string>("");
+  const [pendingBridgeSourceId, setPendingBridgeSourceId] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<SaveState>("idle");
   const [saveMessage, setSaveMessage] = useState<string | null>(layoutPersistenceEnabled ? null : layoutMessage);
+  const [isSavingGraph, setIsSavingGraph] = useState(false);
+  const [graphFeedbackMessage, setGraphFeedbackMessage] = useState<string | null>(
+    graphPersistenceEnabled ? null : graphMessage,
+  );
+  const [historyVersions, setHistoryVersions] = useState<PersonalGraphVersionRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
+  const [isRestoringVersionId, setIsRestoringVersionId] = useState<string | null>(null);
   const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(initialCompletedNodeIds);
   const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [progressErrorMessage, setProgressErrorMessage] = useState<string | null>(
     progressPersistenceEnabled ? null : progressMessage,
   );
   const [nodes, setNodes, onNodesChange] = useNodesState<GraphNodeData>(
-    buildInitialNodes(course, initialLayoutPositions, defaultSelectedId),
+    buildInitialNodes(course.nodes, initialLayoutPositions, defaultSelectedId),
   );
   const deferredQuery = useDeferredValue(query);
   const layoutSignature = useMemo(() => buildLayoutSignature(initialLayoutPositions), [initialLayoutPositions]);
+  const graphSignature = useMemo(() => buildGraphSignature(course), [course]);
   const hasHydratedRef = useRef(false);
   const selectedIdRef = useRef(selectedId);
   const hydratedMapKeyRef = useRef<string | null>(null);
   const hydratedLayoutSignatureRef = useRef("");
+  const hydratedGraphSignatureRef = useRef("");
   const lastPersistedSnapshotRef = useRef("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const normalizedQuery = deferredQuery.trim().toLowerCase();
   const connectedIds = useMemo(
-    () => collectConnectedNodeIds(selectedId, course.edges),
-    [course.edges, selectedId],
+    () => collectConnectedNodeIds(selectedId, graphEdgesData),
+    [graphEdgesData, selectedId],
   );
   const adjacentIds = useMemo(
-    () => collectAdjacentNodeIds(selectedId, course.edges),
-    [course.edges, selectedId],
+    () => collectAdjacentNodeIds(selectedId, graphEdgesData),
+    [graphEdgesData, selectedId],
   );
   const positionSnapshot = useMemo(() => buildPositionSnapshot(nodes), [nodes]);
   const completedNodeIdSet = useMemo(() => new Set(completedNodeIds), [completedNodeIds]);
   const completedCount = completedNodeIds.length;
+  const pendingBridgeReachableIds = useMemo(
+    () => (pendingBridgeSourceId ? collectConnectedNodeIds(pendingBridgeSourceId, graphEdgesData) : new Set<string>()),
+    [graphEdgesData, pendingBridgeSourceId],
+  );
 
   useEffect(() => {
     const isSameMap = hydratedMapKeyRef.current === mapKey;
     const hasLayoutChanged = hydratedLayoutSignatureRef.current !== layoutSignature;
-    const shouldRehydrate = !isSameMap || hasLayoutChanged || hydratedMapKeyRef.current === null;
+    const hasGraphChanged = hydratedGraphSignatureRef.current !== graphSignature;
+    const shouldRehydrate =
+      !isSameMap || hasLayoutChanged || hasGraphChanged || hydratedMapKeyRef.current === null;
+
+    if (hasGraphChanged || !isSameMap || hydratedMapKeyRef.current === null) {
+      setGraphNodesData(course.nodes);
+      setGraphEdgesData(course.edges);
+      setGraphLessonsData(course.lessons);
+    }
+    setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
 
     if (!shouldRehydrate) {
       setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
@@ -414,11 +538,17 @@ function MapCanvas({
       isSameMap && currentSelection && course.nodes.some((node) => node.id === currentSelection)
         ? currentSelection
         : getDefaultSelectedId(course, initialSelectedSlug);
-    const nextNodes = buildInitialNodes(course, initialLayoutPositions, nextSelectedId);
+    const nextNodes = buildInitialNodes(course.nodes, initialLayoutPositions, nextSelectedId);
     const nextSnapshot = buildPositionSnapshot(nextNodes);
 
     setNodes(nextNodes);
     setSelectedId(nextSelectedId);
+    setPendingBridgeSourceId(null);
+    setIsActionsMenuOpen(false);
+    setIsHistoryModalOpen(false);
+    setHistoryVersions([]);
+    setHistoryMessage(null);
+    setIsRestoringVersionId(null);
     if (!isSameMap) {
       setQuery("");
     }
@@ -426,10 +556,14 @@ function MapCanvas({
     hasHydratedRef.current = true;
     hydratedMapKeyRef.current = mapKey;
     hydratedLayoutSignatureRef.current = layoutSignature;
+    hydratedGraphSignatureRef.current = graphSignature;
     setSaveState("idle");
     setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
   }, [
     course,
+    graphSignature,
+    graphMessage,
+    graphPersistenceEnabled,
     initialLayoutPositions,
     initialSelectedSlug,
     layoutMessage,
@@ -468,6 +602,10 @@ function MapCanvas({
   }, [initialCompletedNodeIds, mapKey, progressMessage, progressPersistenceEnabled]);
 
   useEffect(() => {
+    setIsSavingGraph(false);
+  }, [mapKey]);
+
+  useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
@@ -478,15 +616,98 @@ function MapCanvas({
     };
   }, []);
 
+  useEffect(() => {
+    if (!isActionsMenuOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!actionsMenuRef.current?.contains(event.target as globalThis.Node)) {
+        setIsActionsMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsActionsMenuOpen(false);
+      }
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isActionsMenuOpen]);
+
+  useEffect(() => {
+    if (!isHistoryModalOpen || !mapKey) {
+      return;
+    }
+
+    const currentMapKey = mapKey;
+    let isCancelled = false;
+
+    async function loadHistory() {
+      setIsLoadingHistory(true);
+      setHistoryMessage(null);
+
+      try {
+        const response = await fetch(`/api/personal-graph/history?mapKey=${encodeURIComponent(currentMapKey)}`, {
+          method: "GET",
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              error?: string;
+              versions?: PersonalGraphVersionRecord[];
+              historySchemaReady?: boolean;
+              historyMessage?: string | null;
+            }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "We could not load graph history.");
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        setHistoryVersions(payload?.versions ?? []);
+        setHistoryMessage(payload?.historySchemaReady === false ? payload.historyMessage ?? null : null);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setHistoryVersions([]);
+        setHistoryMessage(error instanceof Error ? error.message : "We could not load graph history.");
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    }
+
+    void loadHistory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isHistoryModalOpen, mapKey]);
+
   const rankedMatches = useMemo(() => {
     if (!normalizedQuery) {
       return [];
     }
 
-    return course.nodes
-      .map((node, index) => ({
-        id: node.id,
-        index,
+      return graphNodesData
+        .map((node, index) => ({
+          id: node.id,
+          index,
         score: getNodeSearchScore(node, normalizedQuery),
       }))
       .filter((match) => match.score >= 0)
@@ -497,7 +718,7 @@ function MapCanvas({
 
         return left.index - right.index;
       });
-  }, [course.nodes, normalizedQuery]);
+  }, [graphNodesData, normalizedQuery]);
 
   const matchedIds = useMemo(
     () => new Set(rankedMatches.map((match) => match.id)),
@@ -573,7 +794,7 @@ function MapCanvas({
       return;
     }
 
-    const firstMatch = course.nodes.find((node) => node.id === rankedMatches[0]?.id);
+    const firstMatch = graphNodesData.find((node) => node.id === rankedMatches[0]?.id);
     if (!firstMatch) {
       return;
     }
@@ -586,7 +807,7 @@ function MapCanvas({
       zoom: 0.92,
     });
     setSelectedId(firstMatch.id);
-  }, [course.nodes, graphApi, nodes, normalizedQuery, rankedMatches]);
+  }, [graphApi, graphNodesData, nodes, normalizedQuery, rankedMatches]);
 
   useEffect(() => {
     if (!selectedId || normalizedQuery) {
@@ -630,7 +851,7 @@ function MapCanvas({
   useEffect(() => {
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        const source = course.nodes.find((courseNode) => courseNode.id === node.id);
+        const source = graphNodesData.find((courseNode) => courseNode.id === node.id);
         if (!source) {
           return node;
         }
@@ -668,7 +889,7 @@ function MapCanvas({
     adjacentIds.upstream,
     completedNodeIdSet,
     connectedIds,
-    course.nodes,
+    graphNodesData,
     matchedIds,
     selectedId,
     setNodes,
@@ -677,13 +898,14 @@ function MapCanvas({
   const nodeLookup = useMemo(() => Object.fromEntries(nodes.map((node) => [node.id, node])), [nodes]);
 
   const edges = useMemo<Edge<GraphEdgeData>[]>(() => {
-    return course.edges.map((edge) => {
+    return graphEdgesData.map((edge) => {
       const sourceNode = nodeLookup[edge.source];
       const targetNode = nodeLookup[edge.target];
       const active = selectedId ? connectedIds.has(edge.source) && connectedIds.has(edge.target) : false;
       const emphasizedBySearch = matchedIds.size > 0 && matchedIds.has(edge.source) && matchedIds.has(edge.target);
       const directlyUpstream = edge.target === selectedId;
       const directlyDownstream = edge.source === selectedId;
+      const isBridgeEdge = edge.id.startsWith("bridge-");
       const { sourceHandle, targetHandle } =
         sourceNode && targetNode
           ? pickHandles(sourceNode.position, targetNode.position)
@@ -705,24 +927,33 @@ function MapCanvas({
             active || emphasizedBySearch ? "is-active" : "",
             directlyUpstream ? "is-upstream" : "",
             directlyDownstream ? "is-downstream" : "",
+            isBridgeEdge ? "is-bridge" : "",
           ]
             .filter(Boolean)
             .join(" "),
-          flowVariant: directlyDownstream ? "solid" : directlyUpstream ? "dotted" : "none",
+          flowVariant: directlyDownstream ? "solid" : directlyUpstream || isBridgeEdge ? "dotted" : "none",
         },
         style: {
           stroke:
             directlyUpstream || directlyDownstream || emphasizedBySearch
               ? "rgba(122, 103, 71, 0.84)"
+              : isBridgeEdge
+                ? "rgba(122, 103, 71, 0.72)"
               : active
                 ? "rgba(122, 103, 71, 0.66)"
                 : "rgba(122, 103, 71, 0.44)",
           strokeWidth:
-            directlyDownstream ? 3.35 : directlyUpstream ? 3.05 : active || emphasizedBySearch ? 2.4 : 2,
+            directlyDownstream
+              ? 3.35
+              : directlyUpstream || isBridgeEdge
+                ? 3.05
+                : active || emphasizedBySearch
+                  ? 2.4
+                  : 2,
           strokeDasharray:
             directlyDownstream
               ? undefined
-              : directlyUpstream
+              : directlyUpstream || isBridgeEdge
                 ? "7 11"
                 : active || emphasizedBySearch
                   ? "5 9"
@@ -735,9 +966,83 @@ function MapCanvas({
         },
       };
     });
-  }, [connectedIds, course.edges, matchedIds, nodeLookup, selectedId]);
+  }, [connectedIds, graphEdgesData, matchedIds, nodeLookup, selectedId]);
 
-  const selectedNode = course.nodes.find((node) => node.id === selectedId) ?? course.nodes[0];
+  const selectedNode = graphNodesData.find((node) => node.id === selectedId) ?? graphNodesData[0];
+  const pendingBridgeSourceNode = pendingBridgeSourceId
+    ? graphNodesData.find((node) => node.id === pendingBridgeSourceId) ?? null
+    : null;
+  const existingBridgeEdge =
+    pendingBridgeSourceId && selectedNode
+      ? graphEdgesData.find(
+          (edge) =>
+            edge.id.startsWith("bridge-") &&
+            ((edge.source === pendingBridgeSourceId && edge.target === selectedNode.id) ||
+              (edge.source === selectedNode.id && edge.target === pendingBridgeSourceId)),
+        ) ?? null
+      : null;
+  const canBridgeSelectedNode =
+    !!pendingBridgeSourceNode &&
+    !!selectedNode &&
+    pendingBridgeSourceId !== selectedNode.id &&
+    !pendingBridgeReachableIds.has(selectedNode.id);
+  const insertionOptions = useMemo<InsertionOption[]>(() => {
+    if (!selectedNode) {
+      return [];
+    }
+
+    return graphEdgesData.reduce<InsertionOption[]>((options, edge) => {
+      if (edge.source === selectedNode.id) {
+        const targetNode = graphNodesData.find((node) => node.id === edge.target);
+        if (!targetNode) {
+          return options;
+        }
+
+        options.push({
+          edgeId: edge.id,
+          sourceNodeId: selectedNode.id,
+          targetNodeId: targetNode.id,
+          sourceLabel: selectedNode.label,
+          targetLabel: targetNode.label,
+          direction: "downstream",
+        });
+        return options;
+      }
+
+      if (edge.target === selectedNode.id) {
+        const sourceNode = graphNodesData.find((node) => node.id === edge.source);
+        if (!sourceNode) {
+          return options;
+        }
+
+        options.push({
+          edgeId: edge.id,
+          sourceNodeId: sourceNode.id,
+          targetNodeId: selectedNode.id,
+          sourceLabel: sourceNode.label,
+          targetLabel: selectedNode.label,
+          direction: "upstream",
+        });
+        return options;
+      }
+
+      return options;
+    }, []);
+  }, [graphEdgesData, graphNodesData, selectedNode]);
+
+  useEffect(() => {
+    if (!isAddNodeModalOpen) {
+      return;
+    }
+
+    setInsertionEdgeId((current) => {
+      if (current && insertionOptions.some((option) => option.edgeId === current)) {
+        return current;
+      }
+
+      return insertionOptions[0]?.edgeId ?? "";
+    });
+  }, [insertionOptions, isAddNodeModalOpen]);
 
   const handleCanvasPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const canvas = canvasRef.current;
@@ -758,9 +1063,362 @@ function MapCanvas({
     setIsPointerInside(false);
   };
 
+  const persistPersonalGraph = async (
+    nextGraphNodes: CourseMapNode[],
+    nextGraphEdges: CourseMapEdge[],
+    nextGraphLessons: CourseMapLesson[],
+    options: {
+      editType: PersonalGraphEditType;
+      summary: string;
+      removedNodeIds?: string[];
+      restoredFromVersionId?: string | null;
+    },
+  ) => {
+    if (!mapKey || !graphPersistenceEnabled) {
+      setGraphFeedbackMessage(graphMessage ?? "Personal node editing is not available yet.");
+      return false;
+    }
+
+    setIsSavingGraph(true);
+    setGraphFeedbackMessage(null);
+
+    try {
+      const currentPositions = buildPositionsRecord(nodes);
+      const response = await fetch("/api/personal-graph", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapKey,
+          removedNodeIds: options.removedNodeIds ?? [],
+          editType: options.editType,
+          summary: options.summary,
+          restoredFromVersionId: options.restoredFromVersionId ?? null,
+          graph: {
+            nodes: nextGraphNodes.map((node) => ({
+              ...node,
+              position: currentPositions[node.id] ?? node.position,
+            })),
+            edges: nextGraphEdges,
+            lessons: nextGraphLessons,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        throw new Error(payload?.error || "We could not save your personalized graph.");
+      }
+
+      const payload = (await response.clone().json().catch(() => null)) as
+        | { historySchemaReady?: boolean; historyMessage?: string | null }
+        | null;
+
+      if (payload?.historySchemaReady === false && payload.historyMessage) {
+        setGraphFeedbackMessage(payload.historyMessage);
+      }
+
+      return true;
+    } catch (error) {
+      setGraphFeedbackMessage(
+        error instanceof Error ? error.message : "We could not save your personalized graph.",
+      );
+      return false;
+    } finally {
+      setIsSavingGraph(false);
+    }
+  };
+
+  const handleCreateNode = async () => {
+    const title = newNodeTitle.trim();
+    if (!title) {
+      setGraphFeedbackMessage("Enter a title for the new node.");
+      return;
+    }
+
+    const selectedInsertion = insertionOptions.find((option) => option.edgeId === insertionEdgeId);
+    if (!selectedInsertion) {
+      setGraphFeedbackMessage("Choose an existing connection to insert the node into.");
+      return;
+    }
+
+    const sourceCanvasNode = nodes.find((node) => node.id === selectedInsertion.sourceNodeId);
+    const targetCanvasNode = nodes.find((node) => node.id === selectedInsertion.targetNodeId);
+    const sourcePosition = sourceCanvasNode?.position ?? graphNodesData.find((node) => node.id === selectedInsertion.sourceNodeId)?.position;
+    const targetPosition = targetCanvasNode?.position ?? graphNodesData.find((node) => node.id === selectedInsertion.targetNodeId)?.position;
+    const newPosition = sourcePosition && targetPosition
+      ? {
+          x: Number(((sourcePosition.x + targetPosition.x) / 2).toFixed(2)),
+          y: Number(((sourcePosition.y + targetPosition.y) / 2).toFixed(2)),
+        }
+      : { x: 470, y: 220 };
+
+    const slug = createUniqueNodeSlug(title, graphNodesData);
+    const nodeId = `custom-${crypto.randomUUID()}`;
+    const newNode: CourseMapNode = {
+      id: nodeId,
+      slug,
+      label: title,
+      summary: `${title} is a custom topic you added to this map.`,
+      status: "ready",
+      position: newPosition,
+      duration: "Custom topic",
+      track: "Personal note",
+      outcomes: [
+        `Capture the key ideas behind ${title}.`,
+        "Write down how this topic connects to the rest of the course.",
+        "Use this node as a placeholder for future study.",
+      ],
+    };
+    const newLesson: CourseMapLesson = {
+      slug,
+      headline: `Build your own study notes for ${title}.`,
+      intro: `${title} is a custom node in your personal version of this course map.`,
+      sections: [
+        {
+          title: "Why you added it",
+          body: "Use this area to document why this topic matters in your own learning path.",
+        },
+        {
+          title: "What to study next",
+          body: "Add the main concepts, examples, or resources you want to connect to this node.",
+        },
+      ],
+      takeaways: [
+        "Custom nodes are personal to your canvas.",
+        "You can drag this node anywhere in your map.",
+        "Delete it later if it no longer fits your study plan.",
+      ],
+      relatedSlugs: [],
+    };
+    const nextGraphEdges = graphEdgesData.flatMap((edge) => {
+      if (edge.id !== selectedInsertion.edgeId) {
+        return [edge];
+      }
+
+      return [
+        {
+          id: `edge-${crypto.randomUUID()}`,
+          source: selectedInsertion.sourceNodeId,
+          target: nodeId,
+        },
+        {
+          id: `edge-${crypto.randomUUID()}`,
+          source: nodeId,
+          target: selectedInsertion.targetNodeId,
+        },
+      ] satisfies CourseMapEdge[];
+    });
+
+    const previousGraphNodes = graphNodesData;
+    const previousGraphEdges = graphEdgesData;
+    const previousGraphLessons = graphLessonsData;
+    const previousCanvasNodes = nodes;
+    const previousSelectedId = selectedId;
+    const nextGraphNodes = [...graphNodesData, newNode];
+    const nextGraphLessons = [...graphLessonsData, newLesson];
+    const nextCanvasNodes: Node<GraphNodeData>[] = [
+      ...nodes,
+      {
+        id: newNode.id,
+        type: "course",
+        draggable: true,
+        selectable: true,
+        position: newPosition,
+        data: {
+          ...newNode,
+          active: true,
+          completed: false,
+          connected: false,
+          dimmed: false,
+          matched: false,
+          relation: "selected",
+        },
+      },
+    ];
+
+    setGraphNodesData(nextGraphNodes);
+    setGraphEdgesData(nextGraphEdges);
+    setGraphLessonsData(nextGraphLessons);
+    setNodes(nextCanvasNodes);
+    setSelectedId(newNode.id);
+    setNewNodeTitle("");
+    setInsertionEdgeId("");
+    setIsAddNodeModalOpen(false);
+
+    const didSave = await persistPersonalGraph(nextGraphNodes, nextGraphEdges, nextGraphLessons, {
+      editType: "insert_node",
+      summary: `Inserted ${title}`,
+    });
+    if (!didSave) {
+      setGraphNodesData(previousGraphNodes);
+      setGraphEdgesData(previousGraphEdges);
+      setGraphLessonsData(previousGraphLessons);
+      setNodes(previousCanvasNodes);
+      setSelectedId(previousSelectedId);
+    }
+  };
+
+  const handleDeleteSelectedNode = async () => {
+    if (!selectedNode) {
+      return;
+    }
+
+    const removedNodeId = selectedNode.id;
+    const removedSlug = selectedNode.slug;
+    const previousGraphNodes = graphNodesData;
+    const previousGraphEdges = graphEdgesData;
+    const previousGraphLessons = graphLessonsData;
+    const previousCanvasNodes = nodes;
+    const previousCompletedNodeIds = completedNodeIds;
+    const nextGraphNodes = graphNodesData.filter((node) => node.id !== removedNodeId);
+    const nextGraphEdges = graphEdgesData.filter(
+      (edge) => edge.source !== removedNodeId && edge.target !== removedNodeId,
+    );
+    const nextGraphLessons = graphLessonsData.filter((lesson) => lesson.slug !== removedSlug);
+    const nextCompletedNodeIds = completedNodeIds.filter((nodeId) => nodeId !== removedNodeId);
+    const nextSelectedId = getDefaultSelectedIdFromNodes(nextGraphNodes);
+
+    setGraphNodesData(nextGraphNodes);
+    setGraphEdgesData(nextGraphEdges);
+    setGraphLessonsData(nextGraphLessons);
+    setCompletedNodeIds(nextCompletedNodeIds);
+    setNodes((currentNodes) => currentNodes.filter((node) => node.id !== removedNodeId));
+    setSelectedId(nextSelectedId);
+
+    const didSave = await persistPersonalGraph(
+      nextGraphNodes,
+      nextGraphEdges,
+      nextGraphLessons,
+      {
+        editType: "delete_node",
+        summary: `Deleted ${selectedNode.label}`,
+        removedNodeIds: [removedNodeId],
+      },
+    );
+
+    if (!didSave) {
+      setGraphNodesData(previousGraphNodes);
+      setGraphEdgesData(previousGraphEdges);
+      setGraphLessonsData(previousGraphLessons);
+      setCompletedNodeIds(previousCompletedNodeIds);
+      setNodes(previousCanvasNodes);
+      setSelectedId(removedNodeId);
+    }
+  };
+
+  const handleBridgeAction = async () => {
+    if (!selectedNode) {
+      return;
+    }
+
+    if (!pendingBridgeSourceNode) {
+      setPendingBridgeSourceId(selectedNode.id);
+      setGraphFeedbackMessage(
+        `Bridge mode armed from ${selectedNode.label}. Pick a node in the other disconnected cluster.`,
+      );
+      return;
+    }
+
+    if (pendingBridgeSourceId === selectedNode.id) {
+      setPendingBridgeSourceId(null);
+      setGraphFeedbackMessage("Bridge mode cancelled.");
+      return;
+    }
+
+    if (existingBridgeEdge) {
+      const previousGraphEdges = graphEdgesData;
+      const nextGraphEdges = graphEdgesData.filter((edge) => edge.id !== existingBridgeEdge.id);
+
+      setGraphEdgesData(nextGraphEdges);
+      setPendingBridgeSourceId(null);
+      setGraphFeedbackMessage("Bridge removed.");
+
+      const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData, {
+        editType: "remove_bridge",
+        summary: `Removed bridge involving ${selectedNode.label}`,
+      });
+      if (!didSave) {
+        setGraphEdgesData(previousGraphEdges);
+      }
+      return;
+    }
+
+    if (!canBridgeSelectedNode) {
+      setGraphFeedbackMessage("Choose a node from a different disconnected tree.");
+      return;
+    }
+
+    const previousGraphEdges = graphEdgesData;
+    const nextGraphEdges = [
+      ...graphEdgesData,
+      {
+        id: `bridge-${crypto.randomUUID()}`,
+        source: pendingBridgeSourceNode.id,
+        target: selectedNode.id,
+        label: "bridge",
+      },
+    ];
+
+    setGraphEdgesData(nextGraphEdges);
+    setPendingBridgeSourceId(null);
+    setGraphFeedbackMessage(
+      `Connected ${pendingBridgeSourceNode.label} to ${selectedNode.label}.`,
+    );
+
+    const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData, {
+      editType: "create_bridge",
+      summary: `Connected ${pendingBridgeSourceNode.label} to ${selectedNode.label}`,
+    });
+    if (!didSave) {
+      setGraphEdgesData(previousGraphEdges);
+    }
+  };
+
+  const handleRestoreVersion = async (versionId: string) => {
+    if (!mapKey) {
+      return;
+    }
+
+    setIsRestoringVersionId(versionId);
+    setHistoryMessage(null);
+
+    try {
+      const response = await fetch("/api/personal-graph/history/restore", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapKey,
+          versionId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "We could not restore that graph version.");
+      }
+
+      setIsHistoryModalOpen(false);
+      setIsActionsMenuOpen(false);
+      setGraphFeedbackMessage("Graph restored from history.");
+      setPendingBridgeSourceId(null);
+      setHistoryVersions([]);
+      setHistoryMessage(null);
+      window.location.reload();
+    } catch (error) {
+      setHistoryMessage(error instanceof Error ? error.message : "We could not restore that graph version.");
+    } finally {
+      setIsRestoringVersionId(null);
+    }
+  };
+
   const handleResetLayout = async () => {
-    const defaultPositions = getDefaultPositions(course);
-    const resetNodes = buildInitialNodes(course, defaultPositions, selectedId);
+    const defaultPositions = getDefaultPositions(graphNodesData);
+    const resetNodes = buildInitialNodes(graphNodesData, defaultPositions, selectedId);
     const resetSnapshot = buildPositionSnapshot(resetNodes);
 
     setNodes((currentNodes) =>
@@ -919,15 +1577,96 @@ function MapCanvas({
                 aria-label="Search map nodes"
               />
             </label>
-            <button
-              type="button"
-              className="graph-control-button graph-control-reset"
-              onClick={handleResetLayout}
-              aria-label="Reset layout"
-            >
-              <RotateCcw aria-hidden="true" />
-              <span>Reset layout</span>
-            </button>
+            <div ref={actionsMenuRef} className={`graph-actions-menu${isActionsMenuOpen ? " is-open" : ""}`}>
+              <button
+                type="button"
+                className="graph-control-button graph-control-menu"
+                aria-label="Open canvas actions"
+                aria-expanded={isActionsMenuOpen}
+                onClick={() => setIsActionsMenuOpen((current) => !current)}
+              >
+                <Menu aria-hidden="true" />
+              </button>
+
+              {isActionsMenuOpen ? (
+                <div className="graph-actions-dropdown" role="menu" aria-label="Canvas actions">
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsHistoryModalOpen(true);
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled}
+                  >
+                    <History aria-hidden="true" />
+                    <span>History</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleResetLayout();
+                      setIsActionsMenuOpen(false);
+                    }}
+                  >
+                    <RotateCcw aria-hidden="true" />
+                    <span>Reset layout</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsAddNodeModalOpen(true);
+                      setInsertionEdgeId("");
+                      setGraphFeedbackMessage(graphPersistenceEnabled ? null : graphMessage);
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <Plus aria-hidden="true" />
+                    <span>Insert node</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleBridgeAction();
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <span className="graph-actions-dot" aria-hidden="true" />
+                    <span>
+                      {existingBridgeEdge
+                        ? "Remove bridge"
+                        : pendingBridgeSourceId === selectedNode.id
+                          ? "Cancel bridge"
+                          : pendingBridgeSourceId
+                            ? "Connect here"
+                            : "Start bridge"}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item is-danger"
+                    role="menuitem"
+                    onClick={() => {
+                      void handleDeleteSelectedNode();
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled || isSavingGraph}
+                  >
+                    <Trash2 aria-hidden="true" />
+                    <span>Delete node</span>
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
 
           <ReactFlow
@@ -969,9 +1708,20 @@ function MapCanvas({
                   isSelectedNodeCompleted ? "node-status-chip-complete" : "node-status-chip-muted"
                 }`}
               >
-                {completedCount} / {course.nodes.length} done
+                {completedCount} / {graphNodesData.length} done
               </span>
             </div>
+            <p className="node-detail-bridge-note">
+              {pendingBridgeSourceNode
+                ? pendingBridgeSourceId === selectedNode.id
+                  ? "Bridge mode is armed on this node. Pick another node in the other disconnected tree, or cancel."
+                  : existingBridgeEdge
+                    ? `This bridge already links ${pendingBridgeSourceNode.label} and ${selectedNode.label}.`
+                    : canBridgeSelectedNode
+                      ? `Ready to connect ${pendingBridgeSourceNode.label} and ${selectedNode.label}.`
+                      : "Choose a node in a different disconnected tree to create a bridge."
+                : "Start bridge to connect this node to another disconnected tree."}
+            </p>
             <div className="node-outcomes">
               {selectedNode.outcomes.map((outcome) => (
                 <div key={outcome} className="node-outcome-item">
@@ -1007,8 +1757,191 @@ function MapCanvas({
                 )}
               </Button>
             </div>
-            {progressErrorMessage ? <p className="node-detail-feedback">{progressErrorMessage}</p> : null}
+            {progressErrorMessage || graphFeedbackMessage ? (
+              <p className="node-detail-feedback">{progressErrorMessage ?? graphFeedbackMessage}</p>
+            ) : null}
           </aside>
+
+          {isHistoryModalOpen ? (
+            <div className="graph-modal-backdrop" onClick={() => setIsHistoryModalOpen(false)}>
+              <div
+                className="graph-modal graph-history-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="graph-history-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="graph-modal-header">
+                  <div>
+                    <p className="graph-modal-kicker">Version control</p>
+                    <h2 id="graph-history-title">Graph history</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="graph-modal-close"
+                    onClick={() => setIsHistoryModalOpen(false)}
+                    aria-label="Close graph history dialog"
+                  >
+                    <X aria-hidden="true" />
+                  </button>
+                </div>
+
+                <p className="graph-modal-description">
+                  Restore a prior version of your personal graph for this course map.
+                </p>
+
+                <div className="graph-history-list" aria-live="polite">
+                  {isLoadingHistory ? (
+                    <div className="graph-history-empty">
+                      <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                      <span>Loading history</span>
+                    </div>
+                  ) : historyVersions.length > 0 ? (
+                    historyVersions.map((version, index) => (
+                      <article key={version.id} className="graph-history-item">
+                        <div className="graph-history-copy">
+                          <div className="graph-history-row">
+                            <span className="graph-history-summary">{version.summary}</span>
+                            {index === 0 ? (
+                              <span className="graph-history-badge is-current">Current</span>
+                            ) : null}
+                          </div>
+                          <div className="graph-history-row">
+                            <span className="graph-history-badge">
+                              {getHistoryBadgeLabel(version.editType)}
+                            </span>
+                            <span className="graph-history-timestamp">
+                              {formatHistoryTimestamp(version.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void handleRestoreVersion(version.id)}
+                          disabled={index === 0 || isRestoringVersionId !== null}
+                        >
+                          {isRestoringVersionId === version.id ? (
+                            <>
+                              <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                              Restoring
+                            </>
+                          ) : (
+                            "Restore"
+                          )}
+                        </Button>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="graph-history-empty">
+                      <History aria-hidden="true" />
+                      <span>No graph versions yet.</span>
+                    </div>
+                  )}
+                </div>
+
+                {historyMessage ? <p className="graph-modal-feedback">{historyMessage}</p> : null}
+
+                <div className="graph-modal-actions">
+                  <Button type="button" variant="secondary" onClick={() => setIsHistoryModalOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
+          {isAddNodeModalOpen ? (
+            <div className="graph-modal-backdrop" onClick={() => setIsAddNodeModalOpen(false)}>
+              <div
+                className="graph-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="add-node-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="graph-modal-header">
+                  <div>
+                    <p className="graph-modal-kicker">Personal canvas</p>
+                    <h2 id="add-node-title">Insert node</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="graph-modal-close"
+                    onClick={() => setIsAddNodeModalOpen(false)}
+                    aria-label="Close add node dialog"
+                  >
+                    <X aria-hidden="true" />
+                  </button>
+                </div>
+
+                <p className="graph-modal-description">
+                  Insert a personal topic into an existing connection on your version of the map.
+                </p>
+
+                <div className="graph-modal-field">
+                  <label htmlFor="personal-node-edge" className="graph-modal-label">
+                    Insert between
+                  </label>
+                  <select
+                    id="personal-node-edge"
+                    className="graph-modal-select"
+                    value={insertionEdgeId}
+                    onChange={(event) => setInsertionEdgeId(event.target.value)}
+                    disabled={insertionOptions.length === 0}
+                  >
+                    {insertionOptions.length === 0 ? (
+                      <option value="">No connected topics available</option>
+                    ) : (
+                      insertionOptions.map((option) => (
+                        <option key={option.edgeId} value={option.edgeId}>
+                          {option.sourceLabel} {"->"} {option.targetLabel}
+                        </option>
+                      ))
+                    )}
+                  </select>
+                </div>
+
+                <div className="graph-modal-field">
+                  <label htmlFor="personal-node-title" className="graph-modal-label">
+                    Node title
+                  </label>
+                  <Input
+                    id="personal-node-title"
+                    value={newNodeTitle}
+                    onChange={(event) => setNewNodeTitle(event.target.value)}
+                    placeholder="Operating systems"
+                    autoFocus
+                  />
+                </div>
+
+                {graphFeedbackMessage ? (
+                  <p className="graph-modal-feedback">{graphFeedbackMessage}</p>
+                ) : null}
+
+                <div className="graph-modal-actions">
+                  <Button type="button" variant="secondary" onClick={() => setIsAddNodeModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={handleCreateNode}
+                    disabled={isSavingGraph || insertionOptions.length === 0}
+                  >
+                    {isSavingGraph ? (
+                      <>
+                        <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                        Saving
+                      </>
+                    ) : (
+                      "Insert node"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           <div className="canvas-caption">
             <Database aria-hidden="true" />
