@@ -6,6 +6,7 @@ import type { PointerEvent as ReactPointerEvent } from "react";
 import {
   Check,
   Database,
+  History,
   LoaderCircle,
   Menu,
   Minus,
@@ -36,6 +37,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CourseJobRecord } from "@/lib/course-job-types";
 import type { MapLayoutPositions } from "@/lib/map-layouts";
+import type {
+  PersonalGraphEditType,
+  PersonalGraphVersionRecord,
+} from "@/lib/personal-graph-versions";
 import type { CourseMapEdge, CourseMapLesson, CourseMapNode, CourseRecord } from "@/lib/course-types";
 
 type GraphNodeData = CourseMapNode & {
@@ -381,6 +386,38 @@ function createUniqueNodeSlug(label: string, nodes: CourseMapNode[]) {
   return `${baseSlug}-${suffix}`;
 }
 
+function formatHistoryTimestamp(value: string) {
+  const timestamp = new Date(value);
+
+  if (Number.isNaN(timestamp.getTime())) {
+    return "Just now";
+  }
+
+  return timestamp.toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getHistoryBadgeLabel(editType: PersonalGraphEditType) {
+  switch (editType) {
+    case "insert_node":
+      return "Insert";
+    case "delete_node":
+      return "Delete";
+    case "create_bridge":
+      return "Bridge";
+    case "remove_bridge":
+      return "Unbridge";
+    case "restore_version":
+      return "Restore";
+    default:
+      return "Edit";
+  }
+}
+
 function MapCanvas({
   course,
   courses,
@@ -410,6 +447,7 @@ function MapCanvas({
   const [isPointerInside, setIsPointerInside] = useState(false);
   const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState(false);
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [newNodeTitle, setNewNodeTitle] = useState("");
   const [insertionEdgeId, setInsertionEdgeId] = useState<string>("");
   const [pendingBridgeSourceId, setPendingBridgeSourceId] = useState<string | null>(null);
@@ -419,6 +457,10 @@ function MapCanvas({
   const [graphFeedbackMessage, setGraphFeedbackMessage] = useState<string | null>(
     graphPersistenceEnabled ? null : graphMessage,
   );
+  const [historyVersions, setHistoryVersions] = useState<PersonalGraphVersionRecord[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [historyMessage, setHistoryMessage] = useState<string | null>(null);
+  const [isRestoringVersionId, setIsRestoringVersionId] = useState<string | null>(null);
   const [completedNodeIds, setCompletedNodeIds] = useState<string[]>(initialCompletedNodeIds);
   const [isSavingProgress, setIsSavingProgress] = useState(false);
   const [progressErrorMessage, setProgressErrorMessage] = useState<string | null>(
@@ -487,6 +529,10 @@ function MapCanvas({
     setSelectedId(nextSelectedId);
     setPendingBridgeSourceId(null);
     setIsActionsMenuOpen(false);
+    setIsHistoryModalOpen(false);
+    setHistoryVersions([]);
+    setHistoryMessage(null);
+    setIsRestoringVersionId(null);
     if (!isSameMap) {
       setQuery("");
     }
@@ -560,6 +606,63 @@ function MapCanvas({
       window.removeEventListener("keydown", handleEscape);
     };
   }, [isActionsMenuOpen]);
+
+  useEffect(() => {
+    if (!isHistoryModalOpen || !mapKey) {
+      return;
+    }
+
+    const currentMapKey = mapKey;
+    let isCancelled = false;
+
+    async function loadHistory() {
+      setIsLoadingHistory(true);
+      setHistoryMessage(null);
+
+      try {
+        const response = await fetch(`/api/personal-graph/history?mapKey=${encodeURIComponent(currentMapKey)}`, {
+          method: "GET",
+        });
+
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              error?: string;
+              versions?: PersonalGraphVersionRecord[];
+              historySchemaReady?: boolean;
+              historyMessage?: string | null;
+            }
+          | null;
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "We could not load graph history.");
+        }
+
+        if (isCancelled) {
+          return;
+        }
+
+        setHistoryVersions(payload?.versions ?? []);
+        setHistoryMessage(payload?.historySchemaReady === false ? payload.historyMessage ?? null : null);
+      } catch (error) {
+        if (isCancelled) {
+          return;
+        }
+
+        setHistoryVersions([]);
+        setHistoryMessage(error instanceof Error ? error.message : "We could not load graph history.");
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    }
+
+    void loadHistory();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isHistoryModalOpen, mapKey]);
 
   const rankedMatches = useMemo(() => {
     if (!normalizedQuery) {
@@ -890,7 +993,12 @@ function MapCanvas({
     nextGraphNodes: CourseMapNode[],
     nextGraphEdges: CourseMapEdge[],
     nextGraphLessons: CourseMapLesson[],
-    removedNodeIds: string[] = [],
+    options: {
+      editType: PersonalGraphEditType;
+      summary: string;
+      removedNodeIds?: string[];
+      restoredFromVersionId?: string | null;
+    },
   ) => {
     if (!mapKey || !graphPersistenceEnabled) {
       setGraphFeedbackMessage(graphMessage ?? "Personal node editing is not available yet.");
@@ -909,7 +1017,10 @@ function MapCanvas({
         },
         body: JSON.stringify({
           mapKey,
-          removedNodeIds,
+          removedNodeIds: options.removedNodeIds ?? [],
+          editType: options.editType,
+          summary: options.summary,
+          restoredFromVersionId: options.restoredFromVersionId ?? null,
           graph: {
             nodes: nextGraphNodes.map((node) => ({
               ...node,
@@ -924,6 +1035,14 @@ function MapCanvas({
       if (!response.ok) {
         const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         throw new Error(payload?.error || "We could not save your personalized graph.");
+      }
+
+      const payload = (await response.clone().json().catch(() => null)) as
+        | { historySchemaReady?: boolean; historyMessage?: string | null }
+        | null;
+
+      if (payload?.historySchemaReady === false && payload.historyMessage) {
+        setGraphFeedbackMessage(payload.historyMessage);
       }
 
       return true;
@@ -1054,7 +1173,10 @@ function MapCanvas({
     setInsertionEdgeId("");
     setIsAddNodeModalOpen(false);
 
-    const didSave = await persistPersonalGraph(nextGraphNodes, nextGraphEdges, nextGraphLessons);
+    const didSave = await persistPersonalGraph(nextGraphNodes, nextGraphEdges, nextGraphLessons, {
+      editType: "insert_node",
+      summary: `Inserted ${title}`,
+    });
     if (!didSave) {
       setGraphNodesData(previousGraphNodes);
       setGraphEdgesData(previousGraphEdges);
@@ -1095,7 +1217,11 @@ function MapCanvas({
       nextGraphNodes,
       nextGraphEdges,
       nextGraphLessons,
-      [removedNodeId],
+      {
+        editType: "delete_node",
+        summary: `Deleted ${selectedNode.label}`,
+        removedNodeIds: [removedNodeId],
+      },
     );
 
     if (!didSave) {
@@ -1135,7 +1261,10 @@ function MapCanvas({
       setPendingBridgeSourceId(null);
       setGraphFeedbackMessage("Bridge removed.");
 
-      const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData);
+      const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData, {
+        editType: "remove_bridge",
+        summary: `Removed bridge involving ${selectedNode.label}`,
+      });
       if (!didSave) {
         setGraphEdgesData(previousGraphEdges);
       }
@@ -1164,9 +1293,52 @@ function MapCanvas({
       `Connected ${pendingBridgeSourceNode.label} to ${selectedNode.label}.`,
     );
 
-    const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData);
+    const didSave = await persistPersonalGraph(graphNodesData, nextGraphEdges, graphLessonsData, {
+      editType: "create_bridge",
+      summary: `Connected ${pendingBridgeSourceNode.label} to ${selectedNode.label}`,
+    });
     if (!didSave) {
       setGraphEdgesData(previousGraphEdges);
+    }
+  };
+
+  const handleRestoreVersion = async (versionId: string) => {
+    if (!mapKey) {
+      return;
+    }
+
+    setIsRestoringVersionId(versionId);
+    setHistoryMessage(null);
+
+    try {
+      const response = await fetch("/api/personal-graph/history/restore", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mapKey,
+          versionId,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        throw new Error(payload?.error ?? "We could not restore that graph version.");
+      }
+
+      setIsHistoryModalOpen(false);
+      setIsActionsMenuOpen(false);
+      setGraphFeedbackMessage("Graph restored from history.");
+      setPendingBridgeSourceId(null);
+      setHistoryVersions([]);
+      setHistoryMessage(null);
+      window.location.reload();
+    } catch (error) {
+      setHistoryMessage(error instanceof Error ? error.message : "We could not restore that graph version.");
+    } finally {
+      setIsRestoringVersionId(null);
     }
   };
 
@@ -1342,6 +1514,19 @@ function MapCanvas({
                     className="graph-actions-dropdown-item"
                     role="menuitem"
                     onClick={() => {
+                      setIsHistoryModalOpen(true);
+                      setIsActionsMenuOpen(false);
+                    }}
+                    disabled={!graphPersistenceEnabled}
+                  >
+                    <History aria-hidden="true" />
+                    <span>History</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="graph-actions-dropdown-item"
+                    role="menuitem"
+                    onClick={() => {
                       void handleResetLayout();
                       setIsActionsMenuOpen(false);
                     }}
@@ -1495,6 +1680,96 @@ function MapCanvas({
               <p className="node-detail-feedback">{progressErrorMessage ?? graphFeedbackMessage}</p>
             ) : null}
           </aside>
+
+          {isHistoryModalOpen ? (
+            <div className="graph-modal-backdrop" onClick={() => setIsHistoryModalOpen(false)}>
+              <div
+                className="graph-modal graph-history-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="graph-history-title"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="graph-modal-header">
+                  <div>
+                    <p className="graph-modal-kicker">Version control</p>
+                    <h2 id="graph-history-title">Graph history</h2>
+                  </div>
+                  <button
+                    type="button"
+                    className="graph-modal-close"
+                    onClick={() => setIsHistoryModalOpen(false)}
+                    aria-label="Close graph history dialog"
+                  >
+                    <X aria-hidden="true" />
+                  </button>
+                </div>
+
+                <p className="graph-modal-description">
+                  Restore a prior version of your personal graph for this course map.
+                </p>
+
+                <div className="graph-history-list" aria-live="polite">
+                  {isLoadingHistory ? (
+                    <div className="graph-history-empty">
+                      <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                      <span>Loading history</span>
+                    </div>
+                  ) : historyVersions.length > 0 ? (
+                    historyVersions.map((version, index) => (
+                      <article key={version.id} className="graph-history-item">
+                        <div className="graph-history-copy">
+                          <div className="graph-history-row">
+                            <span className="graph-history-summary">{version.summary}</span>
+                            {index === 0 ? (
+                              <span className="graph-history-badge is-current">Current</span>
+                            ) : null}
+                          </div>
+                          <div className="graph-history-row">
+                            <span className="graph-history-badge">
+                              {getHistoryBadgeLabel(version.editType)}
+                            </span>
+                            <span className="graph-history-timestamp">
+                              {formatHistoryTimestamp(version.createdAt)}
+                            </span>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => void handleRestoreVersion(version.id)}
+                          disabled={index === 0 || isRestoringVersionId !== null}
+                        >
+                          {isRestoringVersionId === version.id ? (
+                            <>
+                              <LoaderCircle aria-hidden="true" className="canvas-caption-spinner" />
+                              Restoring
+                            </>
+                          ) : (
+                            "Restore"
+                          )}
+                        </Button>
+                      </article>
+                    ))
+                  ) : (
+                    <div className="graph-history-empty">
+                      <History aria-hidden="true" />
+                      <span>No graph versions yet.</span>
+                    </div>
+                  )}
+                </div>
+
+                {historyMessage ? <p className="graph-modal-feedback">{historyMessage}</p> : null}
+
+                <div className="graph-modal-actions">
+                  <Button type="button" variant="secondary" onClick={() => setIsHistoryModalOpen(false)}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {isAddNodeModalOpen ? (
             <div className="graph-modal-backdrop" onClick={() => setIsAddNodeModalOpen(false)}>

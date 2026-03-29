@@ -2461,6 +2461,10 @@ label[for],
     inset 0 1px 0 0 rgba(255, 255, 255, 0.58);
 }
 
+.workspace-route .graph-history-modal {
+  width: min(34rem, 100%);
+}
+
 .workspace-route .graph-modal-header {
   display: flex;
   align-items: flex-start;
@@ -2557,6 +2561,70 @@ label[for],
 
 .workspace-route .course-edge.is-bridge .course-edge-path-base {
   stroke: rgba(122, 103, 71, 0.72);
+}
+
+.workspace-route .graph-history-list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  max-height: min(58vh, 30rem);
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.workspace-route .graph-history-item,
+.workspace-route .graph-history-empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.9rem;
+  border: 1px solid color-mix(in oklab, var(--border) 78%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in oklab, var(--surface) 93%, white 7%);
+  padding: 0.85rem 0.95rem;
+}
+
+.workspace-route .graph-history-empty {
+  justify-content: center;
+  color: var(--foreground-muted);
+}
+
+.workspace-route .graph-history-copy {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.workspace-route .graph-history-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.workspace-route .graph-history-summary {
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+.workspace-route .graph-history-badge,
+.workspace-route .graph-history-timestamp {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--surface-strong) 88%, white 12%);
+  padding: 0.36rem 0.62rem;
+  color: var(--foreground-soft);
+  font-size: 0.73rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.workspace-route .graph-history-badge.is-current {
+  color: color-mix(in oklab, var(--accent-strong) 84%, var(--foreground));
+  border: 1px solid color-mix(in oklab, var(--accent) 42%, transparent);
+  background: color-mix(in oklab, var(--accent) 14%, var(--surface));
 }
 
 .workspace-route .node-outcome-item {
