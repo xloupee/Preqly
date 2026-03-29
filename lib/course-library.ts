@@ -1,5 +1,7 @@
 import "server-only";
 
+import { getCourseJobsForCurrentUser } from "@/lib/course-jobs";
+import type { CourseJobRecord } from "@/lib/course-job-types";
 import {
   courseMapEdges,
   courseMapLessons,
@@ -46,6 +48,22 @@ function mapRow(row: CourseRow): CourseRecord {
   };
 }
 
+function filterVisibleCourseJobs(courses: CourseRecord[], jobs: CourseJobRecord[]) {
+  const knownSlugs = new Set(courses.map((course) => course.slug));
+
+  return jobs.filter((job) => {
+    if (job.status !== "ready") {
+      return true;
+    }
+
+    if (!job.courseSlug) {
+      return true;
+    }
+
+    return !knownSlugs.has(job.courseSlug);
+  });
+}
+
 async function readCoursesFromSupabase(): Promise<CourseRecord[]> {
   try {
     const supabase = await createClient();
@@ -75,6 +93,20 @@ export async function getAllCourses() {
   );
 
   return [seedCourse, ...dedupedCourses];
+}
+
+export async function getCourseLibraryState() {
+  const [courses, courseJobsState] = await Promise.all([
+    getAllCourses(),
+    getCourseJobsForCurrentUser(),
+  ]);
+
+  return {
+    courses,
+    courseJobs: filterVisibleCourseJobs(courses, courseJobsState.jobs),
+    jobsEnabled: courseJobsState.schemaReady,
+    jobsMessage: courseJobsState.schemaMessage,
+  };
 }
 
 export async function getCourseBySlug(slug: string) {

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 
 import { CourseMapWorkspace } from "@/components/course-map-workspace";
 import { WorkspaceClassState } from "@/components/workspace-class-state";
-import { getAllCourses } from "@/lib/course-library";
+import { getCourseLibraryState } from "@/lib/course-library";
 import { loadMapLayoutForCurrentUser } from "@/lib/map-layouts";
 import { loadNodeProgressForCurrentUser } from "@/lib/node-progress";
 import { createClient } from "@/lib/supabase/server";
@@ -17,7 +17,7 @@ export default async function WorkspacePage() {
     redirect("/auth");
   }
 
-  const courses = await getAllCourses();
+  const { courses, courseJobs, jobsEnabled, jobsMessage } = await getCourseLibraryState();
   const activeCourse = courses[0] ?? null;
 
   if (!activeCourse) {
@@ -49,6 +49,9 @@ export default async function WorkspacePage() {
         <CourseMapWorkspace
           course={activeCourse}
           courses={courses}
+          courseJobs={courseJobs}
+          courseJobsEnabled={jobsEnabled}
+          courseJobsMessage={jobsMessage}
           userEmail={user.email ?? null}
           mapKey={mapKey}
           initialLayoutPositions={initialLayoutPositions}
