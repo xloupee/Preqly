@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { FileText, FileUp, LoaderCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { mapCourseUploadError } from "@/lib/course-map-backend";
 
-const backendUrl =
-  process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://127.0.0.1:8000";
+function deriveTitleFromFileName(fileName: string) {
+  const normalized = fileName.replace(/\.pdf$/i, "").trim();
+  return normalized || "Untitled course";
+}
 
 export function CourseLibraryUpload() {
   const inputId = useId();
@@ -28,48 +31,29 @@ export function CourseLibraryUpload() {
 
     startTransition(async () => {
       const formData = new FormData();
+      formData.append("title", deriveTitleFromFileName(file.name));
       formData.append("file", file);
-      setMessage("Reading the syllabus and generating a course map...");
+      setMessage("Uploading the syllabus and queueing the course generator...");
 
       try {
-        const generateResponse = await fetch(
-          `${backendUrl}/api/course-map/upload`,
-          { method: "POST", body: formData },
-        );
-
-        const generatePayload = await generateResponse.json();
-
-        if (!generateResponse.ok || !generatePayload.course) {
-          throw new Error(
-            generatePayload.detail ?? "Could not generate the course.",
-          );
-        }
-
-        setMessage("Saving course...");
-
-        const saveResponse = await fetch("/api/courses", {
+        const response = await fetch("/api/course-jobs", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(generatePayload.course),
+          body: formData,
         });
 
-        const savePayload = await saveResponse.json().catch(() => null);
+        const payload = (await response.json().catch(() => null)) as
+          | { error?: string; job?: { id: string } }
+          | null;
 
-        if (!saveResponse.ok || !savePayload?.course?.slug) {
-          throw new Error(
-            savePayload?.error ?? "Could not save the course.",
-          );
+        if (!response.ok || !payload?.job?.id) {
+          throw new Error(payload?.error ?? "Could not queue the course.");
         }
 
-        setMessage("Course generated. Opening the map...");
-        router.push(`/workspace/${savePayload.course.slug}`);
+        setMessage("Course queued. Open the workspace to watch it move through processing.");
+        router.push("/workspace");
         router.refresh();
       } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "Could not generate a course from the syllabus.",
-        );
+        setMessage(mapCourseUploadError(error));
       }
     });
   };
@@ -93,7 +77,7 @@ export function CourseLibraryUpload() {
       <Button asChild size="lg" variant="secondary" disabled={isPending}>
         <label htmlFor={inputId} className="cursor-pointer">
           {isPending ? <LoaderCircle className="animate-spin" /> : <FileUp aria-hidden="true" />}
-          {isPending ? "Generating..." : "Upload syllabus PDF"}
+          {isPending ? "Queueing..." : "Upload syllabus PDF"}
         </label>
       </Button>
 

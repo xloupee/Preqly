@@ -30,6 +30,7 @@ import "reactflow/dist/style.css";
 
 import { WorkspaceShell } from "@/components/workspace-shell";
 import { Button } from "@/components/ui/button";
+import type { CourseJobRecord } from "@/lib/course-job-types";
 import type { MapLayoutPositions } from "@/lib/map-layouts";
 import type { CourseMapEdge, CourseMapNode, CourseRecord } from "@/lib/course-types";
 
@@ -60,6 +61,9 @@ type HandleId =
 type CourseMapWorkspaceProps = {
   course: CourseRecord;
   courses: CourseRecord[];
+  courseJobs?: CourseJobRecord[];
+  courseJobsEnabled?: boolean;
+  courseJobsMessage?: string | null;
   userEmail?: string | null;
   mapKey: string | null;
   initialLayoutPositions?: MapLayoutPositions;
@@ -313,9 +317,24 @@ function getDefaultPositions(course: CourseRecord): MapLayoutPositions {
   return Object.fromEntries(course.nodes.map((node) => [node.id, { ...node.position }]));
 }
 
+function buildLayoutSignature(positions: MapLayoutPositions = {}) {
+  return JSON.stringify(
+    Object.entries(positions)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([id, position]) => ({
+        id,
+        x: Number(position.x.toFixed(2)),
+        y: Number(position.y.toFixed(2)),
+      })),
+  );
+}
+
 function MapCanvas({
   course,
   courses,
+  courseJobs,
+  courseJobsEnabled = true,
+  courseJobsMessage = null,
   userEmail,
   mapKey,
   initialLayoutPositions = {},
@@ -342,7 +361,11 @@ function MapCanvas({
     buildInitialNodes(course, initialLayoutPositions, defaultSelectedId),
   );
   const deferredQuery = useDeferredValue(query);
+  const layoutSignature = useMemo(() => buildLayoutSignature(initialLayoutPositions), [initialLayoutPositions]);
   const hasHydratedRef = useRef(false);
+  const selectedIdRef = useRef(selectedId);
+  const hydratedMapKeyRef = useRef<string | null>(null);
+  const hydratedLayoutSignatureRef = useRef("");
   const lastPersistedSnapshotRef = useRef("");
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resetTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -361,18 +384,39 @@ function MapCanvas({
   const completedCount = completedNodeIds.length;
 
   useEffect(() => {
-    const nextSelectedId = getDefaultSelectedId(course);
+    const isSameMap = hydratedMapKeyRef.current === mapKey;
+    const hasLayoutChanged = hydratedLayoutSignatureRef.current !== layoutSignature;
+    const shouldRehydrate = !isSameMap || hasLayoutChanged || hydratedMapKeyRef.current === null;
+
+    if (!shouldRehydrate) {
+      setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
+      return;
+    }
+
+    const currentSelection = selectedIdRef.current;
+    const nextSelectedId =
+      isSameMap && currentSelection && course.nodes.some((node) => node.id === currentSelection)
+        ? currentSelection
+        : getDefaultSelectedId(course);
     const nextNodes = buildInitialNodes(course, initialLayoutPositions, nextSelectedId);
     const nextSnapshot = buildPositionSnapshot(nextNodes);
 
     setNodes(nextNodes);
     setSelectedId(nextSelectedId);
-    setQuery("");
+    if (!isSameMap) {
+      setQuery("");
+    }
     lastPersistedSnapshotRef.current = nextSnapshot;
     hasHydratedRef.current = true;
+    hydratedMapKeyRef.current = mapKey;
+    hydratedLayoutSignatureRef.current = layoutSignature;
     setSaveState("idle");
     setSaveMessage(layoutPersistenceEnabled ? null : layoutMessage);
-  }, [course, initialLayoutPositions, layoutMessage, layoutPersistenceEnabled, mapKey, setNodes]);
+  }, [course, initialLayoutPositions, layoutMessage, layoutPersistenceEnabled, layoutSignature, mapKey, setNodes]);
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
 
   useEffect(() => {
     setCompletedNodeIds(initialCompletedNodeIds);
@@ -720,7 +764,14 @@ function MapCanvas({
 
   if (!selectedNode) {
     return (
-      <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+      <WorkspaceShell
+        currentCourse={course}
+        courses={courses}
+        courseJobs={courseJobs}
+        courseJobsEnabled={courseJobsEnabled}
+        courseJobsMessage={courseJobsMessage}
+        userEmail={userEmail ?? null}
+      >
         <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
           <div className="workspace-canvas workspace-canvas-empty">
             <div className="workspace-state-card">
@@ -737,7 +788,14 @@ function MapCanvas({
   const isSelectedNodeCompleted = completedNodeIdSet.has(selectedNode.id);
 
   return (
-    <WorkspaceShell currentCourse={course} courses={courses} userEmail={userEmail ?? null}>
+    <WorkspaceShell
+      currentCourse={course}
+      courses={courses}
+      courseJobs={courseJobs}
+      courseJobsEnabled={courseJobsEnabled}
+      courseJobsMessage={courseJobsMessage}
+      userEmail={userEmail ?? null}
+    >
       <section className="workspace-canvas-panel" aria-label="Interactive prerequisite map">
         <div
           ref={canvasRef}
